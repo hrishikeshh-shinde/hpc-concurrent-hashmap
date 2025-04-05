@@ -10,7 +10,7 @@
 class ChainHashMap : public AbstractHashMap {
 
 public:
-  ChainHashMap(int);
+  ChainHashMap(float);
   bool insert(std::string);
   bool search(std::string) const;
   bool remove(std::string);

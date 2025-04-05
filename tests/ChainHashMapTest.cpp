@@ -7,7 +7,7 @@
  */
 int main(int argc, char *argv[]) {
 
-  ChainHashMap h1(50);
+  ChainHashMap h1(0.5);
 
   assert(h1.insert("test"));
   assert(h1.insert("abc"));

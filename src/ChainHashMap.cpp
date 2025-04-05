@@ -2,7 +2,7 @@
 #include <algorithm>
 #include <iterator>
 
-ChainHashMap::ChainHashMap(int loadFactor) : AbstractHashMap(loadFactor) {
+ChainHashMap::ChainHashMap(float loadFactor) : AbstractHashMap(loadFactor) {
   hashMap = std::vector<std::list<std::string>>(BUCKETS);
 }
 

@@ -10,7 +10,7 @@ class AbstractHashMap {
 
 public:
   // Constructor.
-  AbstractHashMap(int);
+  AbstractHashMap(float);
 
   // Pure method to insert a key.
   virtual bool insert(std::string) = 0;
@@ -28,9 +28,9 @@ public:
   virtual ~AbstractHashMap();
 
 private:
-  // A value between 0 and 100(inclusive) to determine the capacity at which a
+  // A value between 0 and 1(inclusive) to determine the load at which a
   // hash map should resize.
-  int loadFactor;
+  float loadFactor;
 
 protected:
   // Total number of data elements in hash map.
