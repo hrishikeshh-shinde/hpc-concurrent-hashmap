@@ -24,6 +24,12 @@ public:
   // Size.
   virtual int size() const = 0;
 
+  // Re-hashing
+  virtual void rehash() = 0;
+
+  // To get loadFactor to determine if re-hashing needed
+  float getLoadFactor() const;
+
   // Pure destructor.
   virtual ~AbstractHashMap();
 

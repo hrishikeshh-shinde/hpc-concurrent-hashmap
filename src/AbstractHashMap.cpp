@@ -8,4 +8,8 @@ AbstractHashMap::AbstractHashMap(float loadFactor) {
   this->count = 0;
 }
 
+float AbstractHashMap::getLoadFactor() const {
+  return loadFactor;
+}
+
 AbstractHashMap::~AbstractHashMap() {}
