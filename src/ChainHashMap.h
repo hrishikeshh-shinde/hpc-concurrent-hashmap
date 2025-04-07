@@ -14,6 +14,7 @@ public:
   bool insert(std::string);
   bool search(std::string) const;
   bool remove(std::string);
+  void rehash();
   int size() const;
   ~ChainHashMap();
 

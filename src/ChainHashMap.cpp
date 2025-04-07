@@ -7,6 +7,11 @@ ChainHashMap::ChainHashMap(float loadFactor) : AbstractHashMap(loadFactor) {
 }
 
 bool ChainHashMap::insert(std::string key) {
+  // If current loadFactor greater than desired, call rehash
+  if (static_cast<float>(size() + 1) / BUCKETS > getLoadFactor()) {
+    rehash();
+  }
+
   const int index = getIndex(hash(key));
   hashMap[index].push_back(key);
   ++count;
@@ -30,6 +35,20 @@ bool ChainHashMap::remove(std::string key) {
   hashMap[index].erase(it);
   --count;
   return true;
+}
+
+void ChainHashMap::rehash() {
+  BUCKETS *= 2;
+  std::vector<std::list<std::string>> newHashMap(BUCKETS);
+  // Re-distributing the elements into the newHashMap
+  for (const auto &bucket : hashMap) {
+    for (const auto &key : bucket) {
+      const int newIndex = getIndex(hash(key));
+      newHashMap[newIndex].push_back(key);
+    }
+  }
+  // Move the newHashMap back into our old hashMap
+  hashMap = std::move(newHashMap);
 }
 
 int ChainHashMap::size() const { return count; }
