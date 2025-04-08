@@ -72,4 +72,8 @@ int ChainHashMap::hash(const std::string &s) const {
   return h;
 }
 
+int ChainHashMap::getBuckets() const {
+  return BUCKETS;
+}
+
 ChainHashMap::~ChainHashMap() {}

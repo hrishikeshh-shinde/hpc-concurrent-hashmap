@@ -16,6 +16,7 @@ public:
   bool remove(std::string);
   void rehash();
   int size() const;
+  int getBuckets() const;
   ~ChainHashMap();
 
 private:
