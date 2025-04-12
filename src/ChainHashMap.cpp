@@ -8,7 +8,7 @@ ChainHashMap::ChainHashMap(float loadFactor) : AbstractHashMap(loadFactor) {
 
 bool ChainHashMap::insert(std::string key) {
   // If current loadFactor greater than desired, call rehash
-  if (static_cast<float>(size() + 1) / BUCKETS > getLoadFactor()) {
+  if (size() + 1 > static_cast<int>(getLoadFactor() * MAX_CAPACITY)) {
     rehash();
   }
 
@@ -39,6 +39,7 @@ bool ChainHashMap::remove(std::string key) {
 
 void ChainHashMap::rehash() {
   BUCKETS *= 2;
+  MAX_CAPACITY *= 2;
   std::vector<std::list<std::string>> newHashMap(BUCKETS);
   // Re-distributing the elements into the newHashMap
   for (const auto &bucket : hashMap) {
