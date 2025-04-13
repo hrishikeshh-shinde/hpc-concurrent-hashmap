@@ -1,25 +1,27 @@
-#include "ChainHashMap.h"
+#include "ThreadSafeChainHashMap.h"
 #include <algorithm>
 #include <iterator>
 
-ChainHashMap::ChainHashMap() : AbstractHashMap() {
+ThreadSafeChainHashMap::ThreadSafeChainHashMap() : AbstractHashMap() {
   hashMap = std::vector<std::list<std::string>>(BUCKETS);
+  mutexArr = std::vector<std::mutex>(BUCKETS);
 }
 
-bool ChainHashMap::insert(std::string key) {
+bool ThreadSafeChainHashMap::insert(std::string key) {
   const int index = getIndex(hash(key));
+  std::lock_guard<std::mutex> lk(mutexArr[index]);
   hashMap[index].push_back(key);
   ++count;
   return true;
 }
 
-bool ChainHashMap::search(std::string key) const {
+bool ThreadSafeChainHashMap::search(std::string key) const {
   const int index = getIndex(hash(key));
   return std::find(hashMap[index].begin(), hashMap[index].end(), key) !=
          hashMap[index].end();
 }
 
-bool ChainHashMap::remove(std::string key) {
+bool ThreadSafeChainHashMap::remove(std::string key) {
   const int index = getIndex(hash(key));
   std::list<std::string>::iterator it =
       std::find(hashMap[index].begin(), hashMap[index].end(), key);
@@ -27,16 +29,20 @@ bool ChainHashMap::remove(std::string key) {
   if (it == hashMap[index].end()) {
     return false;
   }
+  // Else lock the bucket and erase the element at it.
+  std::lock_guard<std::mutex> lk(mutexArr[index]);
   hashMap[index].erase(it);
   --count;
   return true;
 }
 
-int ChainHashMap::size() const { return count; }
+int ThreadSafeChainHashMap::size() const { return count; }
 
-int ChainHashMap::getIndex(const int hash) const { return hash % BUCKETS; }
+int ThreadSafeChainHashMap::getIndex(const int hash) const {
+  return hash % BUCKETS;
+}
 
-int ChainHashMap::hash(const std::string &s) const {
+int ThreadSafeChainHashMap::hash(const std::string &s) const {
   /**
    * Polynomial hashing.
    * h = ( s[0] + s[1] * p + s[2] * p^2 + s[3] * p^3 + ... ) % mod.
@@ -53,4 +59,4 @@ int ChainHashMap::hash(const std::string &s) const {
   return h;
 }
 
-ChainHashMap::~ChainHashMap() {}
+ThreadSafeChainHashMap::~ThreadSafeChainHashMap() {}

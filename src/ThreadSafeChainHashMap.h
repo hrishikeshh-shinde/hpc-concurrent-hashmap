@@ -1,17 +1,18 @@
-#ifndef CHAIN_HASH_MAP_H
-#define CHAIN_HASH_MAP_H
+#ifndef THREAD_SAFE_CHAIN_HASH_MAP_H
+#define THREAD_SAFE_CHAIN_HASH_MAP_H
 #include "AbstractHashMap.h"
 #include <list>
+#include <mutex>
 #include <vector>
 
 /**
- * A single threaded hashmap implementation.
+ * A thread safe chain hashmap implementation.
  */
-class ChainHashMap : public AbstractHashMap {
+class ThreadSafeChainHashMap : public AbstractHashMap {
 
 public:
   // Constructor.
-  ChainHashMap();
+  ThreadSafeChainHashMap();
 
   // Insertion.
   bool insert(std::string);
@@ -26,7 +27,7 @@ public:
   int size() const;
 
   // Destructor.
-  ~ChainHashMap();
+  ~ThreadSafeChainHashMap();
 
 private:
   // Totat number of initial buckets for hash map.
@@ -36,10 +37,13 @@ private:
   // The hash map data structure behind the scenes.
   std::vector<std::list<std::string>> hashMap;
 
+  // Locks to protect access to each of the buckets.
+  std::vector<std::mutex> mutexArr;
+
   // A utility method to compute the hash of a given string.
   int hash(const std::string &) const;
 
   // A utility method to compute the index of a hash in the hash map.
   int getIndex(const int hash) const;
 };
-#endif // CHAIN_HASH_MAP_H
+#endif // THREAD_SAFE_CHAIN_HASH_MAP_H
