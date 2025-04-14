@@ -48,11 +48,12 @@ int ThreadSafeChainHashMap::hash(const std::string &s) const {
    * h = ( s[0] + s[1] * p + s[2] * p^2 + s[3] * p^3 + ... ) % mod.
    */
   const int p = 97;
-  const int mod = 1e9 + 7;
-  int h = 0;
-  int pow = 1;
+  const long long int mod = 1e9 + 7;
+  long long h = 0;
+  long long pow = 1;
   for (char c : s) {
     h += ((c - '!' + 1) * pow) % mod;
+    h %= mod;
     pow *= p;
     pow %= mod;
   }
