@@ -31,13 +31,13 @@ void testRehash() {
   assert(h1.insert("abc"));
   assert(h1.insert("pqrs"));
   assert(h1.insert("wxyz"));
-  assert(h1.insert("wxyz"));
+  assert(h1.insert("erty"));
 
   assert(h1.size() == 5);
 
-  assert(h1.getBuckets() == 100);
+  assert(h1.getBuckets() == 10);
   assert(h1.insert("test1"));
-  assert(h1.getBuckets() == 200);
+  assert(h1.getBuckets() == 20);
 
   assert(h1.size() == 6);
 

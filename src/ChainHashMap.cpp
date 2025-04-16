@@ -1,12 +1,15 @@
 #include "ChainHashMap.h"
 #include <algorithm>
 #include <iterator>
+#include <iostream>
+#include <omp.h>
 
 ChainHashMap::ChainHashMap(float loadFactor) : AbstractHashMap(loadFactor) {
   hashMap = std::vector<std::list<std::string>>(BUCKETS);
 }
 
 bool ChainHashMap::insert(std::string key) {
+  std::cout << key << " B=" << getBuckets() << " Sz=" << size() << " maxcap=" << MAX_CAPACITY << std::endl;
   // If current loadFactor greater than desired, call rehash
   if (size() + 1 > static_cast<int>(getLoadFactor() * MAX_CAPACITY)) {
     rehash();
@@ -37,18 +40,52 @@ bool ChainHashMap::remove(std::string key) {
   return true;
 }
 
+// void ChainHashMap::rehash() {
+//   BUCKETS *= 2;
+//   MAX_CAPACITY *= 2;
+//   std::vector<std::list<std::string>> newHashMap(BUCKETS);
+//   // Re-distributing the elements into the newHashMap
+//   for (const auto &bucket : hashMap) {
+//     for (const auto &key : bucket) {
+//       const int newIndex = getIndex(hash(key));
+//       newHashMap[newIndex].push_back(key);
+//     }
+//   }
+//   // Move the newHashMap back into our old hashMap
+//   hashMap = std::move(newHashMap);
+// }
+
 void ChainHashMap::rehash() {
+  std::cout << "DOUBLE" << std::endl;
   BUCKETS *= 2;
   MAX_CAPACITY *= 2;
   std::vector<std::list<std::string>> newHashMap(BUCKETS);
-  // Re-distributing the elements into the newHashMap
-  for (const auto &bucket : hashMap) {
-    for (const auto &key : bucket) {
-      const int newIndex = getIndex(hash(key));
-      newHashMap[newIndex].push_back(key);
-    }
+
+  int num_threads = omp_get_max_threads();
+  std::vector<std::vector<std::list<std::string>>> localHashMaps(num_threads, std::vector<std::list<std::string>>(BUCKETS));
+
+  #pragma omp parallel
+  {
+      int tid = omp_get_thread_num();
+      #pragma omp for schedule(dynamic)
+      for (size_t i = 0; i < hashMap.size(); ++i) {
+          for (const auto &key : hashMap[i]) {
+              int newIndex = getIndex(hash(key));
+              localHashMaps[tid][newIndex].push_back(key);
+          }
+      }
   }
-  // Move the newHashMap back into our old hashMap
+
+  for (int tid = 0; tid < num_threads; ++tid) {
+      for (size_t bucketIdx = 0; bucketIdx < BUCKETS; ++bucketIdx) {
+          if (!localHashMaps[tid][bucketIdx].empty()) {
+              newHashMap[bucketIdx].splice(
+                  newHashMap[bucketIdx].end(),
+                  localHashMaps[tid][bucketIdx]);
+          }
+      }
+  }
+
   hashMap = std::move(newHashMap);
 }
 

@@ -15,6 +15,7 @@ public:
   bool search(std::string) const;
   bool remove(std::string);
   void rehash();
+  // void rehashOpenMp();
   int size() const;
   int getBuckets() const;
   ~ChainHashMap();
@@ -22,7 +23,7 @@ public:
 private:
   // Totat number of initial buckets and max capacity of each bucket for hash map.
   int BUCKETS = 10;
-  int MAX_CAPACITY = 10000;
+  int MAX_CAPACITY = 100;
 
   // The hash map data structure behind the scenes.
   std::vector<std::list<std::string>> hashMap;
