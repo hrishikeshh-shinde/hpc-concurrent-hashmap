@@ -1,5 +1,6 @@
 #include "ThreadSafeChainHashMap.h"
 #include <algorithm>
+#include <iostream>
 #include <iterator>
 
 ThreadSafeChainHashMap::ThreadSafeChainHashMap() : AbstractHashMap() {

@@ -1,4 +1,0 @@
-ChainHashMapTest:
-Insertion time: 249.347 ms.
-Search time: 32495.5 ms.
-Deletion time: 14619.4 ms.

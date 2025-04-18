@@ -1,6 +1,7 @@
 #ifndef ABSTRACT_HASH_MAP_H
 #define ABSTRACT_HASH_MAP_H
 
+#include <atomic>
 #include <string>
 
 /**
@@ -29,6 +30,6 @@ public:
 
 protected:
   // Total number of data elements in hash map.
-  int count;
+  std::atomic<int> count;
 };
 #endif // ABSTRACT_HASH_MAP_H

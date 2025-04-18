@@ -30,8 +30,8 @@ public:
 
 private:
   // Totat number of initial buckets for hash map.
-  // For 1e7 elements, avg bucket size would be 1e4.
-  const int BUCKETS = 1024;
+  // For 1e7 elements, avg bucket size would be 10.
+  const int BUCKETS = 1024 * 1024;
 
   // The hash map data structure behind the scenes.
   std::vector<std::list<std::string>> hashMap;

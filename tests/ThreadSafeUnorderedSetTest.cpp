@@ -1,37 +1,43 @@
-#include "../src/ThreadSafeChainHashMap.h"
 #include <cassert>
 #include <fstream>
 #include <iostream>
+#include <mutex>
 #include <thread>
+#include <unordered_set>
+#include <vector>
 
 /**
  * A multi-threaded test application to test single-threaded thread-safe
- * ThreadSafeChainHashMap.
+ * unordered_set.
  */
 std::vector<std::pair<std::string, bool>> tests;
+std::mutex mtx;
 
-void test_insert(int start, int n, ThreadSafeChainHashMap &h) {
+void test_insert(int start, int n, std::unordered_set<std::string> &h) {
   for (int i = start; i <= n + start - 1; ++i) {
     if (tests[i].second) {
-      assert(h.insert(tests[i].first));
+      std::lock_guard<std::mutex> lk(mtx);
+      h.insert(tests[i].first);
     }
   }
 }
 
-void test_search(int start, int n, ThreadSafeChainHashMap &h) {
+void test_search(int start, int n, std::unordered_set<std::string> &h) {
   for (int i = start; i <= n + start - 1; ++i) {
-    assert(h.search(tests[i].first) == tests[i].second);
+    assert((h.find(tests[i].first) != h.end() ? true : false) ==
+           tests[i].second);
   }
 }
 
-void test_remove(int start, int n, ThreadSafeChainHashMap &h) {
+void test_remove(int start, int n, std::unordered_set<std::string> &h) {
   for (int i = start; i <= n + start - 1; ++i) {
-    assert(h.remove(tests[i].first) == tests[i].second);
+    std::lock_guard<std::mutex> lk(mtx);
+    assert(h.erase(tests[i].first) == tests[i].second);
   }
 }
 
 int main(int argc, char *argv[]) {
-  ThreadSafeChainHashMap h;
+  std::unordered_set<std::string> h;
   std::string s;
   bool toInsert;
   std::chrono::high_resolution_clock::time_point start, end;

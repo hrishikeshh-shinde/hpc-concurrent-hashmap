@@ -1,12 +1,14 @@
-#include "../src/ChainHashMap.h"
 #include <cassert>
 #include <chrono>
 #include <fstream>
 #include <iostream>
+#include <unordered_set>
+#include <vector>
 
-/* A single threaded test application to test single threaded ChainHashMap. */
+/* A single threaded test application to test unordered_set. */
 int main(int argc, char *argv[]) {
-  ChainHashMap h;
+
+  std::unordered_set<std::string> h;
   std::vector<std::pair<std::string, bool>> tests;
   std::string s;
   bool toInsert;
@@ -45,7 +47,8 @@ int main(int argc, char *argv[]) {
 
   start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < tests.size(); ++i) {
-    assert(h.search(tests[i].first) == tests[i].second);
+    assert((h.find(tests[i].first) != h.end() ? true : false) ==
+           tests[i].second);
   }
   end = std::chrono::high_resolution_clock::now();
 
@@ -63,7 +66,7 @@ int main(int argc, char *argv[]) {
 
   start = std::chrono::high_resolution_clock::now();
   for (int i = 0; i < tests.size(); ++i) {
-    assert(h.remove(tests[i].first) == tests[i].second);
+    assert(h.erase(tests[i].first) == tests[i].second);
   }
   assert(h.size() == 0);
   end = std::chrono::high_resolution_clock::now();
