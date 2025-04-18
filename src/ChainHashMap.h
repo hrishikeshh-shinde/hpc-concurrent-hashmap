@@ -10,20 +10,19 @@
 class ChainHashMap : public AbstractHashMap {
 
 public:
-  ChainHashMap(float);
+  ChainHashMap(float, int, int);
   bool insert(std::string);
   bool search(std::string) const;
   bool remove(std::string);
   void rehash();
   // void rehashOpenMp();
   int size() const;
-  int getBuckets() const;
   ~ChainHashMap();
 
 private:
   // Totat number of initial buckets and max capacity of each bucket for hash map.
-  int BUCKETS = 10;
-  int MAX_CAPACITY = 100;
+  // int BUCKETS = 10;
+  // int MAX_CAPACITY = 100;
 
   // The hash map data structure behind the scenes.
   std::vector<std::list<std::string>> hashMap;

@@ -4,14 +4,14 @@
 #include <iostream>
 #include <omp.h>
 
-ChainHashMap::ChainHashMap(float loadFactor) : AbstractHashMap(loadFactor) {
-  hashMap = std::vector<std::list<std::string>>(BUCKETS);
+ChainHashMap::ChainHashMap(float loadFactor, int BUCKETS, int MAX_CAPACITY) : AbstractHashMap(loadFactor, BUCKETS, MAX_CAPACITY) {
+  hashMap = std::vector<std::list<std::string>>(getBuckets());
 }
 
 bool ChainHashMap::insert(std::string key) {
-  std::cout << key << " B=" << getBuckets() << " Sz=" << size() << " maxcap=" << MAX_CAPACITY << std::endl;
+  std::cout << key << " B=" << getBuckets() << " Sz=" << size() << " maxcap=" << getMaxCapacity() << std::endl;
   // If current loadFactor greater than desired, call rehash
-  if (size() + 1 > static_cast<int>(getLoadFactor() * MAX_CAPACITY)) {
+  if (size() + 1 > static_cast<int>(getLoadFactor() * getMaxCapacity())) {
     rehash();
   }
 
@@ -57,12 +57,13 @@ bool ChainHashMap::remove(std::string key) {
 
 void ChainHashMap::rehash() {
   std::cout << "DOUBLE" << std::endl;
-  BUCKETS *= 2;
-  MAX_CAPACITY *= 2;
-  std::vector<std::list<std::string>> newHashMap(BUCKETS);
+  doubleBuckets();
+  doubleCapacity();
+  int Buckets = getBuckets();
+  std::vector<std::list<std::string>> newHashMap(Buckets);
 
   int num_threads = omp_get_max_threads();
-  std::vector<std::vector<std::list<std::string>>> localHashMaps(num_threads, std::vector<std::list<std::string>>(BUCKETS));
+  std::vector<std::vector<std::list<std::string>>> localHashMaps(num_threads, std::vector<std::list<std::string>>(Buckets));
 
   #pragma omp parallel
   {
@@ -77,7 +78,7 @@ void ChainHashMap::rehash() {
   }
 
   for (int tid = 0; tid < num_threads; ++tid) {
-      for (size_t bucketIdx = 0; bucketIdx < BUCKETS; ++bucketIdx) {
+      for (size_t bucketIdx = 0; bucketIdx < Buckets; ++bucketIdx) {
           if (!localHashMaps[tid][bucketIdx].empty()) {
               newHashMap[bucketIdx].splice(
                   newHashMap[bucketIdx].end(),
@@ -91,7 +92,7 @@ void ChainHashMap::rehash() {
 
 int ChainHashMap::size() const { return count; }
 
-int ChainHashMap::getIndex(const int hash) const { return hash % BUCKETS; }
+int ChainHashMap::getIndex(const int hash) const { return hash % getBuckets(); }
 
 int ChainHashMap::hash(const std::string &s) const {
   /**
@@ -108,10 +109,6 @@ int ChainHashMap::hash(const std::string &s) const {
     pow %= mod;
   }
   return h;
-}
-
-int ChainHashMap::getBuckets() const {
-  return BUCKETS;
 }
 
 ChainHashMap::~ChainHashMap() {}

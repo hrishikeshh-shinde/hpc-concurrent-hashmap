@@ -3,7 +3,7 @@
 #include <iostream>
 
 void testBaseHashMap() {
-  ChainHashMap h1(0.5);
+  ChainHashMap h1(0.5, 10, 100);
 
   assert(h1.insert("test"));
   assert(h1.insert("abc"));
@@ -25,7 +25,7 @@ void testBaseHashMap() {
 }
 
 void testRehash() {
-  ChainHashMap h1(0.05);
+  ChainHashMap h1(0.05, 10, 100);
   
   assert(h1.insert("test"));
   assert(h1.insert("abc"));
