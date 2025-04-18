@@ -9,7 +9,7 @@
 cd $SLURM_SUBMIT_DIR
 
 # Load the gcc module
-module load gcc/13.2.0
+module load gcc
 
 # Create build directory
 mkdir -p build
@@ -19,7 +19,7 @@ make all
 
 # Run correctness test
 echo "==== Running Correctness Test ===="
-./build/correctness
+./build/compilation
 echo
 
 # Run read-heavy test with 8 threads
