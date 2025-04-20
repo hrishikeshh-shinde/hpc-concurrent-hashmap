@@ -3,6 +3,7 @@
 #include <iterator>
 #include <iostream>
 #include <omp.h>
+#include <mutex>
 
 ChainHashMap::ChainHashMap(float loadFactor, int BUCKETS, int MAX_CAPACITY) : AbstractHashMap(loadFactor, BUCKETS, MAX_CAPACITY) {
   hashMap = std::vector<std::list<std::string>>(getBuckets());
@@ -40,6 +41,7 @@ bool ChainHashMap::remove(std::string key) {
   return true;
 }
 
+// Base version
 // void ChainHashMap::rehash() {
 //   BUCKETS *= 2;
 //   MAX_CAPACITY *= 2;
@@ -55,39 +57,82 @@ bool ChainHashMap::remove(std::string key) {
 //   hashMap = std::move(newHashMap);
 // }
 
+// OpenMp Version
+// void ChainHashMap::rehash() {
+//   std::cout << "DOUBLE" << std::endl;
+//   doubleBuckets();
+//   doubleCapacity();
+//   int Buckets = getBuckets();
+//   std::vector<std::list<std::string>> newHashMap(Buckets);
+
+//   int num_threads = omp_get_max_threads();
+//   std::vector<std::vector<std::list<std::string>>> localHashMaps(num_threads, std::vector<std::list<std::string>>(Buckets));
+
+//   #pragma omp parallel
+//   {
+//       int tid = omp_get_thread_num();
+//       #pragma omp for schedule(dynamic)
+//       for (size_t i = 0; i < hashMap.size(); ++i) {
+//           for (const auto &key : hashMap[i]) {
+//               int newIndex = getIndex(hash(key));
+//               localHashMaps[tid][newIndex].push_back(key);
+//           }
+//       }
+//   }
+
+//   for (int tid = 0; tid < num_threads; ++tid) {
+//       for (size_t bucketIdx = 0; bucketIdx < Buckets; ++bucketIdx) {
+//           if (!localHashMaps[tid][bucketIdx].empty()) {
+//               newHashMap[bucketIdx].splice(
+//                   newHashMap[bucketIdx].end(),
+//                   localHashMaps[tid][bucketIdx]);
+//           }
+//       }
+//   }
+
+//   hashMap = std::move(newHashMap);
+// }
+
+// Thread Version
 void ChainHashMap::rehash() {
-  std::cout << "DOUBLE" << std::endl;
-  doubleBuckets();
-  doubleCapacity();
-  int Buckets = getBuckets();
-  std::vector<std::list<std::string>> newHashMap(Buckets);
+    int oldBuckets = getBuckets();
+    doubleBuckets();
+    doubleCapacity();
 
-  int num_threads = omp_get_max_threads();
-  std::vector<std::vector<std::list<std::string>>> localHashMaps(num_threads, std::vector<std::list<std::string>>(Buckets));
+    std::vector<std::list<std::string>> newHashMap(getBuckets());
+    std::vector<std::mutex> newBucketLocks(getBuckets());
 
-  #pragma omp parallel
-  {
-      int tid = omp_get_thread_num();
-      #pragma omp for schedule(dynamic)
-      for (size_t i = 0; i < hashMap.size(); ++i) {
-          for (const auto &key : hashMap[i]) {
-              int newIndex = getIndex(hash(key));
-              localHashMaps[tid][newIndex].push_back(key);
-          }
-      }
-  }
+    // Number of threads (e.g., 4)
+    const int num_threads = 4;
+    std::vector<std::thread> threads(num_threads);
 
-  for (int tid = 0; tid < num_threads; ++tid) {
-      for (size_t bucketIdx = 0; bucketIdx < Buckets; ++bucketIdx) {
-          if (!localHashMaps[tid][bucketIdx].empty()) {
-              newHashMap[bucketIdx].splice(
-                  newHashMap[bucketIdx].end(),
-                  localHashMaps[tid][bucketIdx]);
-          }
-      }
-  }
+    // Lambda for thread operation
+    auto rehashTask = [&](int thread_id) {
+        // Each thread processes a subset of old buckets
+        for (int i = thread_id; i < oldBuckets; i += num_threads) {
+            for (const auto &key : hashMap[i]) {
+                int newIndex = getIndex(hash(key));
 
-  hashMap = std::move(newHashMap);
+                // Lock only the bucket you're inserting into
+                std::lock_guard<std::mutex> lock(newBucketLocks[newIndex]);
+                newHashMap[newIndex].push_back(key);
+            }
+        }
+    };
+
+    // Launch threads
+    for (int tid = 0; tid < num_threads; ++tid) {
+        threads[tid] = std::thread(rehashTask, tid);
+    }
+
+    // Join threads
+    for (auto &t : threads) {
+        t.join();
+    }
+
+    // Move new map into old map
+    hashMap = std::move(newHashMap);
+    bucketLocks = std::move(newBucketLocks);
 }
 
 int ChainHashMap::size() const { return count; }

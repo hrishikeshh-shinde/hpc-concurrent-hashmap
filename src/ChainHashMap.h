@@ -3,6 +3,7 @@
 #include "AbstractHashMap.h"
 #include <list>
 #include <vector>
+#include <mutex>
 
 /**
  * A single threaded hashmap example.
@@ -26,6 +27,9 @@ private:
 
   // The hash map data structure behind the scenes.
   std::vector<std::list<std::string>> hashMap;
+
+  // mutex for each bucket
+  std::vector<std::mutex> bucketLocks;
 
   // A utility method to compute the hash of a given string.
   int hash(const std::string &) const;
