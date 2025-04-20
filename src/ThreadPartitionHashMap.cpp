@@ -15,10 +15,8 @@ std::vector<size_t> ThreadPartitionHashMap::get_thread_submaps() const {
     size_t thread_id = std::hash<std::thread::id>{}(std::this_thread::get_id());
     size_t num_threads = std::thread::hardware_concurrency();
     
-    // Fix: Use the same type for both arguments to std::max
     num_threads = std::max(num_threads, static_cast<size_t>(1));
     
-    // Each thread is responsible for NUM_SUBMAPS / num_threads submaps
     size_t submaps_per_thread = NUM_SUBMAPS / num_threads;
     if (submaps_per_thread == 0) submaps_per_thread = 1;
     
@@ -32,46 +30,53 @@ std::vector<size_t> ThreadPartitionHashMap::get_thread_submaps() const {
 
 void ThreadPartitionHashMap::resize_submap(size_t submap_idx) {
     Submap& submap = submaps[submap_idx];
-    
-    // Check if already resizing or no longer needs resize
-    if (submap.is_resizing.exchange(true) || !submap.needs_resize()) {
-        submap.is_resizing.store(false);
+
+    std::unique_lock write_lock(submap.resize_rw_mutex);
+
+    size_t current_size = submap.size.load();
+    size_t current_capacity = submap.capacity_unsafe();
+    if (current_capacity > 0 && static_cast<float>(current_size) / current_capacity < loadFactor) {
+       return; 
+    }
+    if (submap.is_resizing_unsafe) {
         return;
     }
-    
-    // Create new entries with double capacity
-    size_t new_capacity = submap.capacity() * 2;
+
+    submap.is_resizing_unsafe = true;
+
+    size_t new_capacity = (current_capacity == 0) ? 8 : current_capacity * 2;
     std::vector<Entry> new_entries(new_capacity);
-    
-    // Rehash all entries
+    size_t new_size = 0;
+
     for (const auto& entry : submap.entries) {
-        if (!entry.occupied.load()) continue;
-        
-        // Find new position
-        size_t idx = get_entry_index(entry.key, new_capacity);
-        size_t probe = 0;
-        
-        while (new_entries[idx].occupied.load()) {
-            probe++;
-            idx = (idx + probe) % new_capacity;
+        if (entry.state.load() == EntryState::OCCUPIED) {
+            size_t initial_idx = hasher(entry.key) % new_capacity;
+            size_t probe = 0;
+            size_t idx = initial_idx;
+
+            while (new_entries[idx].state.load() != EntryState::EMPTY) {
+                probe++;
+                idx = (initial_idx + (probe * probe + probe) / 2) % new_capacity;
+                if (probe > new_capacity) {
+                   submap.is_resizing_unsafe = false; 
+                   throw std::runtime_error("Resize failed: Could not find empty slot during rehash.");
+                }
+            }
+            new_entries[idx].key = std::move(const_cast<Entry&>(entry).key);
+            new_entries[idx].state.store(EntryState::OCCUPIED);
+            new_size++;
         }
-        
-        // Copy to new position
-        new_entries[idx].key = entry.key;
-        new_entries[idx].occupied.store(true);
     }
-    
-    // Swap in new entries
+
     submap.entries = std::move(new_entries);
-    submap.is_resizing.store(false);
+    submap.size.store(new_size); 
+    submap.is_resizing_unsafe = false; 
 }
 
 // Constructor
 ThreadPartitionHashMap::ThreadPartitionHashMap(float loadFactor) 
     : AbstractHashMap(loadFactor), total_size(0) {
-    // Initialize submaps individually
     for (size_t i = 0; i < NUM_SUBMAPS; ++i) {
-        // Create and initialize each submap directly
         submaps[i] = Submap(this, 8 + i % 8);
     }
 }
@@ -99,39 +104,29 @@ bool ThreadPartitionHashMap::insert(std::string key) {
     size_t probe = 0;
     
     while (true) {
-        // Try to find an empty slot or matching key
         if (!submap.entries[idx].occupied.load()) {
-            // Found empty slot - try to claim it
             bool expected = false;
             if (submap.entries[idx].occupied.compare_exchange_strong(expected, true)) {
-                // Successfully claimed this slot, now initialize it
                 submap.entries[idx].key = std::move(key);
                 
                 // Increment sizes
                 submap.size.fetch_add(1);
                 total_size.fetch_add(1);
-                count++; // Update AbstractHashMap's count
+                count++; 
                 return true;
             }
-            // Someone else claimed this slot, continue probing
         }
         
-        // Check if this is an update to existing key
         if (submap.entries[idx].occupied.load() && 
             submap.entries[idx].key == key) {
-            // Key already exists
             return false;
         }
         
-        // Continue probing
         probe++;
-        idx = (initial_idx + probe) % submap.capacity();
-        
-        // Avoid infinite loop
+        idx = (initial_idx + (probe * probe + probe) / 2) % current_capacity;
+
         if (probe >= submap.capacity()) {
-            // Emergency resize if we've probed the entire table
             resize_submap(submap_idx);
-            // Restart insertion
             return insert(std::move(key));
         }
     }
@@ -159,7 +154,7 @@ bool ThreadPartitionHashMap::search(std::string key) const {
         
         // Continue probing
         probe++;
-        idx = (initial_idx + probe) % submap.capacity();
+        idx = (initial_idx + (probe * probe + probe) / 2) % current_capacity;
     }
     
     return false;  // Not found after checking entire submap
@@ -203,7 +198,7 @@ bool ThreadPartitionHashMap::remove(std::string key) {
         
         // Continue probing
         probe++;
-        idx = (initial_idx + probe) % submap.capacity();
+        idx = (initial_idx + (probe * probe + probe) / 2) % current_capacity;
     }
     
     return false;  // Not found after checking entire submap
