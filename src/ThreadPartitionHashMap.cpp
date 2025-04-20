@@ -36,7 +36,6 @@ void ThreadPartitionHashMap::resize_submap(size_t submap_idx) {
 
     std::unique_lock write_lock(submap.rw_mutex);
 
-    size_t current_size = submap.size.load(std::memory_order_relaxed);
     size_t current_capacity = submap.capacity_unsafe(); // Read capacity under lock
 
     float parent_load_factor = 0.7f; // Default load factor
@@ -71,10 +70,8 @@ void ThreadPartitionHashMap::resize_submap(size_t submap_idx) {
         }
     }
 
-    // Swap in new entries
     submap.entries = std::move(new_entries);
     submap.size.store(new_size, std::memory_order_relaxed);
-    // write_lock releases automatically
 }
 
 // Constructor
@@ -82,8 +79,6 @@ ThreadPartitionHashMap::ThreadPartitionHashMap(float loadFactorParam)
     : AbstractHashMap(loadFactorParam), total_size(0) {
     std::string tid = tid_to_string();
     for (size_t i = 0; i < NUM_SUBMAPS; ++i) {
-         // The Submap move assignment operator might be called here internally by std::array logic,
-         // or directly if std::array initializes differently. Adding logs to Submap move= might be useful too.
          submaps[i] = Submap(this);
     }
 }
@@ -93,9 +88,8 @@ bool ThreadPartitionHashMap::insert(std::string key) {
     size_t submap_idx = get_submap_index(key);
     Submap& submap = submaps[submap_idx];
     std::string tid = tid_to_string();
-    std::string key_copy_for_log = key; // Copy key for logging in case original is moved
+    std::string key_copy_for_log = key;
 
-    // Loop to handle potential resize and retry
     int attempt = 0;
     while (true) {
         attempt++;
@@ -103,6 +97,7 @@ bool ThreadPartitionHashMap::insert(std::string key) {
 
         // --- Check resize necessity (under lock) ---
         size_t current_capacity = submap.capacity_unsafe();
+        size_t current_size = submap.size.load(std::memory_order_relaxed);
 
         float parent_load_factor = 0.7f;
         AbstractHashMap* p_map = submap.parent;
@@ -115,13 +110,12 @@ bool ThreadPartitionHashMap::insert(std::string key) {
         bool needs_resize = (current_capacity == 0 || static_cast<float>(current_size + 1) / current_capacity > parent_load_factor);
 
         if (needs_resize) {
-            write_lock.unlock(); // <<< Explicit unlock
+            write_lock.unlock(); 
 
             resize_submap(submap_idx);
-            continue; // <<< Retry the whole insert operation
+            continue; 
         }
 
-        // --- If NO resize needed, proceed with insertion (while holding lock) ---
         std::vector<Entry>& current_entries = submap.entries;
         size_t initial_idx = hasher(key) % current_capacity; // Use key before potential move
         size_t probe = 0;
@@ -140,24 +134,23 @@ bool ThreadPartitionHashMap::insert(std::string key) {
                     first_deleted_slot = idx;
                     probe++;
                     if (probe >= current_capacity) {
-                        insert_idx = first_deleted_slot; // Use first deleted if we wrapped around
+                        insert_idx = first_deleted_slot;
                     } else {
-                        continue; // Continue probing for duplicates
+                        continue; 
                     }
                 }
 
-                // Insert at insert_idx
                 Entry& target_entry_ref = current_entries[insert_idx];
-                target_entry_ref.key = std::move(key); // Move the key parameter
+                target_entry_ref.key = std::move(key);
                 target_entry_ref.state.store(EntryState::OCCUPIED, std::memory_order_relaxed);
 
                 submap.size.fetch_add(1, std::memory_order_relaxed);
                 total_size.fetch_add(1, std::memory_order_relaxed);
-                return true; // Insert successful (lock releases automatically)
+                return true; 
 
-            } else { // OCCUPIED
-                if (current_entry_ref.key == key) { // Compare with passed key
-                    return false; // Key already exists (lock releases automatically)
+            } else { 
+                if (current_entry_ref.key == key) { 
+                    return false; 
                 }
             }
 
@@ -165,12 +158,11 @@ bool ThreadPartitionHashMap::insert(std::string key) {
             if (probe >= current_capacity) {
                  throw std::runtime_error("Table became unexpectedly full during insert probe.");
             }
-        } // End inner probe loop
-    } // End outer while(true) loop (for resize retry)
+        } 
+    } 
 }
 
 
-// Search uses shared lock for the target submap
 bool ThreadPartitionHashMap::search(std::string key) const {
     size_t submap_idx = get_submap_index(key);
     const Submap& submap = submaps[submap_idx];
@@ -192,26 +184,24 @@ bool ThreadPartitionHashMap::search(std::string key) const {
         EntryState current_state = current_entries[idx].state.load(std::memory_order_relaxed);
 
         if (current_state == EntryState::EMPTY) {
-             return false; // Key not found
+             return false; 
         }
         if (current_state == EntryState::OCCUPIED && current_entries[idx].key == key) {
-             return true; // Found the key
+             return true;
         }
 
         probe++;
         if (probe >= current_capacity) {
-             return false; // Key not found
+             return false; 
         }
     }
-    // Lock releases automatically
 }
 
-// Remove uses unique lock for the target submap
 bool ThreadPartitionHashMap::remove(std::string key) {
     size_t submap_idx = get_submap_index(key);
     Submap& submap = submaps[submap_idx];
     std::string tid = tid_to_string();
-    std::string key_copy_for_log = key; // Copy key for logging
+    std::string key_copy_for_log = key; 
 
     std::unique_lock write_lock(submap.rw_mutex);
 
@@ -230,42 +220,37 @@ bool ThreadPartitionHashMap::remove(std::string key) {
         EntryState current_state = current_entry_ref.state.load(std::memory_order_relaxed);
 
         if (current_state == EntryState::EMPTY) {
-            return false; // Key not found
-        }
+            return false; 
 
         if (current_state == EntryState::OCCUPIED && current_entry_ref.key == key) {
             current_entry_ref.state.store(EntryState::DELETED, std::memory_order_relaxed);
-            // Optional: Clear the key string
-            // current_entry_ref.key.clear(); current_entry_ref.key.shrink_to_fit();
+
 
             submap.size.fetch_sub(1, std::memory_order_relaxed);
             total_size.fetch_sub(1, std::memory_order_relaxed);
-            return true; // Removed (lock releases automatically)
+            return true; 
         }
 
         probe++;
         if (probe >= current_capacity) {
-            return false; // Key not found
+            return false; 
         }
     }
-     // Lock releases automatically
 }
 
-// Size uses atomic total_size
 int ThreadPartitionHashMap::size() const {
     std::string tid = tid_to_string();
     size_t current_total_size = total_size.load(std::memory_order_relaxed);
     return static_cast<int>(current_total_size);
 }
 
-// Rehash iterates and calls resize_submap
 void ThreadPartitionHashMap::rehash() {
      std::string tid = tid_to_string();
     for (size_t i = 0; i < NUM_SUBMAPS; ++i) {
-         resize_submap(i); // resize_submap handles its own lock
+         resize_submap(i); 
     }
 }
 
 // Destructor
-ThreadPartitionHashMap::~ThreadPartitionHashMap() {    // Automatic cleanup is sufficient
+ThreadPartitionHashMap::~ThreadPartitionHashMap() {   
 }
