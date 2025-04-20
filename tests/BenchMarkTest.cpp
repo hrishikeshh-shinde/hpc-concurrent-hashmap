@@ -119,8 +119,7 @@ void run_workload(MapType& map, int num_ops_per_thread, int key_range, std::atom
 // --- Test Functions ---
 
 void run_comparison_test(int num_threads) {
-    std::cout << "
-==== Running Comparison Test (" << num_threads << " threads) ====" << std::endl;
+    std::cout << "==== Running Comparison Test (" << num_threads << " threads) ====" << std::endl;
 
     ThreadPartitionHashMap my_map(0.7f);
     LockedUnorderedMap std_map_locked;
@@ -171,8 +170,7 @@ void run_comparison_test(int num_threads) {
     double throughput2 = static_cast<double>(TOTAL_OPERATIONS) / (duration2_ms / 1000.0);
 
     // --- Print Results ---
-    std::cout << "
---- Comparison Results (" << num_threads << " threads, " << TOTAL_OPERATIONS << " ops) ---" << std::endl;
+    std::cout << "--- Comparison Results (" << num_threads << " threads, " << TOTAL_OPERATIONS << " ops) ---" << std::endl;
     std::cout << "ThreadPartitionHashMap:" << std::endl;
     std::cout << "  Wall Time: " << duration1_ms << " ms" << std::endl;
     std::cout << "  Avg Thread Time: " << (my_map_total_time.load() / num_threads) / 1e6 << " ms" << std::endl; // Convert ns to ms
@@ -188,8 +186,7 @@ void run_comparison_test(int num_threads) {
 
 
 void run_scaling_test() {
-     std::cout << "
-==== Running Scaling Test ====" << std::endl;
+     std::cout << "==== Running Scaling Test ====" << std::endl;
 
      std::vector<int> thread_counts = {1, 2, 4, 8};
      int max_threads = std::thread::hardware_concurrency();
@@ -229,11 +226,10 @@ void run_scaling_test() {
          auto duration_ms = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time).count();
          double throughput = (duration_ms > 0) ? (static_cast<double>(TOTAL_OPERATIONS) / (duration_ms / 1000.0)) : 0.0;
 
-         std::cout << "
---- Scaling Result (" << num_threads << " threads, " << TOTAL_OPERATIONS << " ops) ---" << std::endl;
+         std::cout << "--- Scaling Result (" << num_threads << " threads, " << TOTAL_OPERATIONS << " ops) ---" << std::endl;
          std::cout << "  Wall Time: " << duration_ms << " ms" << std::endl;
          if (num_threads > 0) {
-            std::cout << "  Avg Thread Time: " << (my_map_total_time.load() / num_threads) / 1e6 << " ms" << std::endl; // Convert ns to ms
+            std::cout << "  Avg Thread Time: " << (my_map_total_time.load() / num_threads) / 1e6 << " ms" << std::endl;
          }
          std::cout << "  Throughput: " << throughput << " ops/sec" << std::endl;
 
@@ -252,8 +248,7 @@ int main() {
     run_comparison_test(num_threads_for_comparison);
     run_scaling_test();
 
-    std::cout << "
-All benchmarks completed!" << std::endl;
+    std::cout << "All benchmarks completed!" << std::endl;
     return 0;
 }
 

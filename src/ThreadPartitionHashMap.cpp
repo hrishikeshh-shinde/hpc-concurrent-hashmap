@@ -221,6 +221,7 @@ bool ThreadPartitionHashMap::remove(std::string key) {
 
         if (current_state == EntryState::EMPTY) {
             return false; 
+        }
 
         if (current_state == EntryState::OCCUPIED && current_entry_ref.key == key) {
             current_entry_ref.state.store(EntryState::DELETED, std::memory_order_relaxed);

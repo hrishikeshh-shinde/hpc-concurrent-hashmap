@@ -33,11 +33,11 @@ $(BUILD_DIR)/read_heavy: $(TEST_DIR)/ReadHeavyTest.cpp $(SRC_FILES) $(HASHMAP_HE
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
 
 # Resize stress test with comparison 
-$(BUILD_DIR)/resize_stress: ResizeStressTest.cpp $(SRC_FILES) $(HASHMAP_HEADER) $(ABSTRACT_HEADER) | $(BUILD_DIR)
+$(BUILD_DIR)/resize_stress: $(TEST_DIR)/ResizeStressTest.cpp $(SRC_FILES) $(HASHMAP_HEADER) $(ABSTRACT_HEADER) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
 
 # Benchmark tests (comparison and scaling)
-$(BUILD_DIR)/benchmarks: BenchmarkTests.cpp $(SRC_FILES) $(HASHMAP_HEADER) $(ABSTRACT_HEADER) | $(BUILD_DIR)
+$(BUILD_DIR)/benchmarks: $(TEST_DIR)/BenchMarkTest.cpp $(SRC_FILES) $(HASHMAP_HEADER) $(ABSTRACT_HEADER) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
 
 # --- Clean Target ---

@@ -75,8 +75,7 @@ void stress_insert_thread_func(MapType& map, int thread_id, std::atomic<int>& su
 }
 
 void test_resize_stress_compare() {
-    std::cout << "
-==== Running Resize Stress Test with Comparison (" << RESIZE_NUM_THREADS << " threads) ====" << std::endl;
+    std::cout << "==== Running Resize Stress Test with Comparison (" << RESIZE_NUM_THREADS << " threads) ====" << std::endl;
 
     ThreadPartitionHashMap my_map(RESIZE_LOAD_FACTOR);
     LockedUnorderedMap std_map_locked;
@@ -85,8 +84,7 @@ void test_resize_stress_compare() {
     std::atomic<int> my_map_success_count(0);
     std::atomic<int> std_map_success_count(0);
 
-    std::cout << "
---- Stressing ThreadPartitionHashMap ---" << std::endl;
+    std::cout << "--- Stressing ThreadPartitionHashMap ---" << std::endl;
     auto start1 = std::chrono::high_resolution_clock::now();
     threads.clear();
     for (int i = 0; i < RESIZE_NUM_THREADS; ++i) {
@@ -103,8 +101,7 @@ void test_resize_stress_compare() {
 
 
     // --- Run on LockedUnorderedMap ---
-    std::cout << "
---- Stressing LockedUnorderedMap ---" << std::endl;
+    std::cout << "--- Stressing LockedUnorderedMap ---" << std::endl;
      auto start2 = std::chrono::high_resolution_clock::now();
     threads.clear();
     for (int i = 0; i < RESIZE_NUM_THREADS; ++i) {
@@ -121,8 +118,7 @@ void test_resize_stress_compare() {
 
 
     // --- Verification  ---
-    std::cout << "
---- Verification Phase ---" << std::endl;
+    std::cout << "--- Verification Phase ---" << std::endl;
     bool my_map_ok = true;
     size_t my_map_found = 0;
     size_t std_map_found = 0;
@@ -141,8 +137,7 @@ void test_resize_stress_compare() {
     assert(static_cast<size_t>(std_map_success_count.load()) == std_map_found && "Mismatch between successful inserts and found keys in standard map!");
 
 
-    std::cout << "
-Resize stress test with comparison passed!" << std::endl;
+    std::cout << "Resize stress test with comparison passed!" << std::endl;
     std::cout << "---------------------------------------------" << std::endl;
 }
 
