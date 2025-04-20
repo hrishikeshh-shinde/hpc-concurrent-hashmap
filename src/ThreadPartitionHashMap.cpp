@@ -59,7 +59,7 @@ void ThreadPartitionHashMap::resize_submap(size_t submap_idx) {
 }
 
 // Constructor
-ThreadPartitionHashMap::ThreadPartitionHashMap(float loadFactorParam) {}
+ThreadPartitionHashMap::ThreadPartitionHashMap(float loadFactorParam) {
     : AbstractHashMap(loadFactorParam), total_size(0) { 
          submaps[i] = Submap(this); 
     }
@@ -69,70 +69,73 @@ bool ThreadPartitionHashMap::insert(std::string key) {
     size_t submap_idx = get_submap_index(key);
     Submap& submap = submaps[submap_idx];
 
-    std::unique_lock write_lock(submap.rw_mutex);
-
-    size_t current_size = submap.size.load();
-    size_t current_capacity = submap.capacity_unsafe();
-
-    float parent_load_factor = 0.7f;
-    if (submap.parent) {
-         parent_load_factor = submap.parent->getLoadFactor(); 
-    }
-    if (current_capacity == 0 || static_cast<float>(current_size + 1) / current_capacity > parent_load_factor) {
-        resize_submap(submap_idx);
-        current_capacity = submap.capacity_unsafe();
-        current_size = submap.size.load();
-        if (current_capacity == 0) {
-             throw std::runtime_error("Resize failed during insert."); 
-        }
-    }
-
-    // --- Perform insertion (under lock) ---
-    std::vector<Entry>& current_entries = submap.entries;
-    size_t initial_idx = hasher(key) % current_capacity; 
-    size_t probe = 0;
-    size_t first_deleted_slot = SIZE_MAX; 
-
     while (true) {
-        // Quadratic probing
-        size_t idx = (initial_idx + (probe * probe + probe) / 2) % current_capacity;
-        Entry& current_entry_ref = current_entries[idx]; 
-        EntryState current_state = current_entry_ref.state.load();
+        std::unique_lock write_lock(submap.rw_mutex); 
+        size_t current_size = submap.size.load(std::memory_order_relaxed);
+        size_t current_capacity = submap.capacity_unsafe();
 
-        if (current_state == EntryState::EMPTY || current_state == EntryState::DELETED) {
-            size_t insert_idx = idx;
-            if (current_state == EntryState::EMPTY && first_deleted_slot != SIZE_MAX) {
-                insert_idx = first_deleted_slot;
-            } else if (current_state == EntryState::DELETED && first_deleted_slot == SIZE_MAX) {
-                 first_deleted_slot = idx;
-                 probe++; 
-                 if (probe >= current_capacity) {
-                      insert_idx = first_deleted_slot; 
-                 } else {
-                     continue;
-                 }
-            }
-
-            Entry& target_entry_ref = current_entries[insert_idx];
-            target_entry_ref.key = std::move(key);
-            target_entry_ref.state.store(EntryState::OCCUPIED);
-
-            submap.size.fetch_add(1, std::memory_order_relaxed);
-            total_size.fetch_add(1, std::memory_order_relaxed);
-            return true; // Inserted
-
-        } else { 
-            if (current_entry_ref.key == key) { 
-                return false; 
-            }
+        float parent_load_factor = 0.7f;
+        AbstractHashMap* p_map = submap.parent;
+        if (p_map != nullptr) {
+            parent_load_factor = p_map->getLoadFactor();
+        } else {
+             parent_load_factor = this->getLoadFactor();
         }
 
-        probe++;
-        if (probe >= current_capacity) {
-             throw std::runtime_error("Table became unexpectedly full during insert."); 
+        bool needs_resize = (current_capacity == 0 || static_cast<float>(current_size + 1) / current_capacity > parent_load_factor);
+
+        if (needs_resize) {
+            write_lock.unlock();
+            resize_submap(submap_idx);
+            continue; 
         }
+
+        std::vector<Entry>& current_entries = submap.entries;
+        size_t initial_idx = hasher(key) % current_capacity;
+        size_t probe = 0;
+        size_t first_deleted_slot = std::numeric_limits<size_t>::max();
+
+        while (true) {
+            size_t idx = (initial_idx + (probe * probe + probe) / 2) % current_capacity;
+            Entry& current_entry_ref = current_entries[idx];
+            EntryState current_state = current_entry_ref.state.load(std::memory_order_relaxed);
+
+            if (current_state == EntryState::EMPTY || current_state == EntryState::DELETED) {
+                size_t insert_idx = idx;
+                if (current_state == EntryState::EMPTY && first_deleted_slot != std::numeric_limits<size_t>::max()) {
+                    insert_idx = first_deleted_slot;
+                } else if (current_state == EntryState::DELETED && first_deleted_slot == std::numeric_limits<size_t>::max()) {
+                    first_deleted_slot = idx;
+                    probe++;
+                    if (probe >= current_capacity) {
+                        insert_idx = first_deleted_slot;
+                    } else {
+                        continue; // Continue probing for duplicates
+                    }
+                }
+
+                Entry& target_entry_ref = current_entries[insert_idx];
+                target_entry_ref.key = std::move(key); // Move key into place
+                target_entry_ref.state.store(EntryState::OCCUPIED, std::memory_order_relaxed);
+
+                submap.size.fetch_add(1, std::memory_order_relaxed);
+                total_size.fetch_add(1, std::memory_order_relaxed);
+                return true; // Insert successful
+
+            } else { // OCCUPIED
+                if (current_entry_ref.key == key) {
+                    return false; // Key already exists
+                }
+            }
+
+            probe++;
+            if (probe >= current_capacity) {
+                 throw std::runtime_error("Table became unexpectedly full during insert probe.");
+            }
+        } 
     }
 }
+
 
 // Search uses shared lock for the target submap
 bool ThreadPartitionHashMap::search(std::string key) const {
