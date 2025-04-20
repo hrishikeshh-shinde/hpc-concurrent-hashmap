@@ -9,20 +9,28 @@ SRC_FILES = $(SRC_DIR)/AbstractHashMap.cpp $(SRC_DIR)/ThreadPartitionHashMap.cpp
 INCLUDE = -I$(SRC_DIR)
 
 # Build all tests
-all: compilation read_heavy
+all: compilation read_heavy resize_stress benchmarks
 
-# Individual test targets
-compilation: $(TEST_DIR)/CompilationTest.cpp $(SRC_FILES)
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(BUILD_DIR)/$@
+# Basic compilation and correctness test
+$(BUILD_DIR)/compilation: $(TEST_DIR)/CompilationTest.cpp $(SRC_FILES) $(SRC_DIR)/ThreadPartitionHashMap.h $(SRC_DIR)/AbstractHashMap.h | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
 
-read_heavy: $(TEST_DIR)/ReadHeavyTest.cpp $(SRC_FILES)
-	$(CXX) $(CXXFLAGS) $(INCLUDE) $^ -o $(BUILD_DIR)/$@
+# Read-heavy concurrency test
+$(BUILD_DIR)/read_heavy: $(TEST_DIR)/ReadHeavyTest.cpp $(SRC_FILES) $(SRC_DIR)/ThreadPartitionHashMap.h $(SRC_DIR)/AbstractHashMap.h | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
+
+# Resize stress test with comparison
+$(BUILD_DIR)/resize_stress_compare: ResizeStressTest.cpp $(SRC_FILES) $(SRC_DIR)/ThreadPartitionHashMap.h $(SRC_DIR)/AbstractHashMap.h | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
+
+# Benchmark tests (comparison and scaling) 
+$(BUILD_DIR)/benchmarks: BenchmarkTests.cpp $(SRC_FILES) $(SRC_DIR)/ThreadPartitionHashMap.h $(SRC_DIR)/AbstractHashMap.h | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
 
 
-$(BUILD_DIR):
-	mkdir -p $(BUILD_DIR)
-
+# Clean target
 clean:
 	rm -rf $(BUILD_DIR)
 
-.PHONY: all clean compilation read_heavy
+# Phony targets (prevent conflicts with files named 'all', 'clean', etc.)
+.PHONY: all clean compilation read_heavy resize_stress benchmarks
