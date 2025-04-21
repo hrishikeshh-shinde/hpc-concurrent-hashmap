@@ -4,9 +4,9 @@
 #include <fstream>
 #include <iostream>
 
-/* A single threaded test application to test single threaded ChainHashMap. */
+/* A single threaded test application to test single threaded ChainHashMapRehash. */
 int main(int argc, char *argv[]) {
-  ChainHashMapRehash h(0.5, 10, 100);
+  ChainHashMapRehash h(1, 1024 * 1024, 10e9);
   std::vector<std::pair<std::string, bool>> tests;
   std::string s;
   bool toInsert;
