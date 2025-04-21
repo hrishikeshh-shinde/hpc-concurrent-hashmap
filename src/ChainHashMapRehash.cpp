@@ -2,8 +2,9 @@
 #include <algorithm>
 #include <iterator>
 #include <iostream>
-#include <omp.h>
+// #include <omp.h>
 #include <mutex>
+#include <thread>
 
 ChainHashMapRehash::ChainHashMapRehash(float loadFactor, int BUCKETS, int MAX_CAPACITY) : AbstractHashMap() {
   if (loadFactor < 0 or loadFactor > 1) {

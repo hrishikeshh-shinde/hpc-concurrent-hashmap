@@ -1,4 +1,4 @@
-#include "../src/ChainHashMapRehash.h"
+#include "../src/ChainHashMap.h"
 #include <cassert>
 #include <chrono>
 #include <fstream>
@@ -6,7 +6,7 @@
 
 /* A single threaded test application to test single threaded ChainHashMap. */
 int main(int argc, char *argv[]) {
-  ChainHashMapRehash h(0.5, 10, 100);
+  ChainHashMap h;
   std::vector<std::pair<std::string, bool>> tests;
   std::string s;
   bool toInsert;

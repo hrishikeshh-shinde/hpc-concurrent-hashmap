@@ -22,7 +22,7 @@ threadsafeunorderedsettest: tests/ThreadSafeUnorderedSetTest.cpp
 	g++ -std=c++17 tests/ThreadSafeUnorderedSetTest.cpp -g -o threadsafeunorderedsettest.out
 
 chainhashmaprehashtest: $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE)
-	g++ -std=c++17 $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE) -g -o chainhashmaprehashtest.out
+	g++ -std=c++17 -pthread $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE) -g -o chainhashmaprehashtest.out
 
 
 clean:
