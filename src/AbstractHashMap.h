@@ -1,6 +1,7 @@
 #ifndef ABSTRACT_HASH_MAP_H
 #define ABSTRACT_HASH_MAP_H
 
+#include <atomic>
 #include <string>
 
 /**
@@ -10,7 +11,7 @@ class AbstractHashMap {
 
 public:
   // Constructor.
-  AbstractHashMap(float, int, int); //loadFactor, BUCKETS, MAX_CAPACITY
+  AbstractHashMap();
 
   // Pure method to insert a key.
   virtual bool insert(std::string) = 0;
@@ -24,32 +25,11 @@ public:
   // Size.
   virtual int size() const = 0;
 
-  // Re-hashing
-  virtual void rehash() = 0;
-
-  // To get loadFactor to determine if re-hashing needed
-  float getLoadFactor() const;
-
-  int getBuckets() const;
-
-  int getMaxCapacity() const;
-
-  void doubleBuckets();
-
-  void doubleCapacity();
-
   // Pure destructor.
   virtual ~AbstractHashMap();
 
-private:
-  // A value between 0 and 1(inclusive) to determine the load at which a
-  // hash map should resize.
-  float loadFactor;
-  int BUCKETS;
-  int MAX_CAPACITY;
-
 protected:
   // Total number of data elements in hash map.
-  int count;
+  std::atomic<int> count;
 };
 #endif // ABSTRACT_HASH_MAP_H

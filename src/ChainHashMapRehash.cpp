@@ -1,15 +1,28 @@
-#include "ChainHashMap.h"
+#include "ChainHashMapRehash.h"
 #include <algorithm>
 #include <iterator>
 #include <iostream>
 #include <omp.h>
 #include <mutex>
 
-ChainHashMap::ChainHashMap(float loadFactor, int BUCKETS, int MAX_CAPACITY) : AbstractHashMap(loadFactor, BUCKETS, MAX_CAPACITY) {
+ChainHashMapRehash::ChainHashMapRehash(float loadFactor, int BUCKETS, int MAX_CAPACITY) : AbstractHashMap() {
+  if (loadFactor < 0 or loadFactor > 1) {
+    std::__throw_out_of_range("load factor value is out of range.");
+  }
+  if (BUCKETS < 1) {
+    std::__throw_out_of_range("BUCKETS value is out of range.");
+  }
+  if (MAX_CAPACITY < 1) {
+    std::__throw_out_of_range("MAX_CAPACITY value is out of range.");
+  }
+  this->loadFactor = loadFactor;
+  this->count = 0;
+  this->BUCKETS = BUCKETS;
+  this->MAX_CAPACITY = MAX_CAPACITY;
   hashMap = std::vector<std::list<std::string>>(getBuckets());
 }
 
-bool ChainHashMap::insert(std::string key) {
+bool ChainHashMapRehash::insert(std::string key) {
   std::cout << key << " B=" << getBuckets() << " Sz=" << size() << " maxcap=" << getMaxCapacity() << std::endl;
   // If current loadFactor greater than desired, call rehash
   if (size() + 1 > static_cast<int>(getLoadFactor() * getMaxCapacity())) {
@@ -22,13 +35,13 @@ bool ChainHashMap::insert(std::string key) {
   return true;
 }
 
-bool ChainHashMap::search(std::string key) const {
+bool ChainHashMapRehash::search(std::string key) const {
   const int index = getIndex(hash(key));
   return std::find(hashMap[index].begin(), hashMap[index].end(), key) !=
          hashMap[index].end();
 }
 
-bool ChainHashMap::remove(std::string key) {
+bool ChainHashMapRehash::remove(std::string key) {
   const int index = getIndex(hash(key));
   std::list<std::string>::iterator it =
       std::find(hashMap[index].begin(), hashMap[index].end(), key);
@@ -42,7 +55,7 @@ bool ChainHashMap::remove(std::string key) {
 }
 
 // Base version
-// void ChainHashMap::rehash() {
+// void ChainHashMapRehash::rehash() {
 //   BUCKETS *= 2;
 //   MAX_CAPACITY *= 2;
 //   std::vector<std::list<std::string>> newHashMap(BUCKETS);
@@ -58,7 +71,7 @@ bool ChainHashMap::remove(std::string key) {
 // }
 
 // OpenMp Version
-// void ChainHashMap::rehash() {
+// void ChainHashMapRehash::rehash() {
 //   std::cout << "DOUBLE" << std::endl;
 //   doubleBuckets();
 //   doubleCapacity();
@@ -94,7 +107,7 @@ bool ChainHashMap::remove(std::string key) {
 // }
 
 // Thread Version
-void ChainHashMap::rehash() {
+void ChainHashMapRehash::rehash() {
     int oldBuckets = getBuckets();
     doubleBuckets();
     doubleCapacity();
@@ -135,25 +148,46 @@ void ChainHashMap::rehash() {
     bucketLocks = std::move(newBucketLocks);
 }
 
-int ChainHashMap::size() const { return count; }
+int ChainHashMapRehash::size() const { return count; }
 
-int ChainHashMap::getIndex(const int hash) const { return hash % getBuckets(); }
+int ChainHashMapRehash::getIndex(const int hash) const { return hash % getBuckets(); }
 
-int ChainHashMap::hash(const std::string &s) const {
+int ChainHashMapRehash::hash(const std::string &s) const {
   /**
    * Polynomial hashing.
    * h = ( s[0] + s[1] * p + s[2] * p^2 + s[3] * p^3 + ... ) % mod.
    */
   const int p = 97;
-  const int mod = 1e9 + 7;
-  int h = 0;
-  int pow = 1;
+  const long long int mod = 1e9 + 7;
+  long long h = 0;
+  long long pow = 1;
   for (char c : s) {
     h += ((c - '!' + 1) * pow) % mod;
+    h %= mod;
     pow *= p;
     pow %= mod;
   }
   return h;
 }
 
-ChainHashMap::~ChainHashMap() {}
+float ChainHashMapRehash::getLoadFactor() const {
+  return loadFactor;
+}
+
+int ChainHashMapRehash::getBuckets() const {
+  return BUCKETS;
+}
+
+int ChainHashMapRehash::getMaxCapacity() const {
+  return MAX_CAPACITY;
+}
+
+void ChainHashMapRehash::doubleBuckets() {
+  BUCKETS *= 2;
+}
+
+void ChainHashMapRehash::doubleCapacity() {
+  MAX_CAPACITY *= 2;
+}
+
+ChainHashMapRehash::~ChainHashMapRehash() {}

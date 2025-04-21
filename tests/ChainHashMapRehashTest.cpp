@@ -1,9 +1,9 @@
-#include "../src/ChainHashMap.h"
+#include "../src/ChainHashMapRehash.h"
 #include <cassert>
 #include <iostream>
 
 void testBaseHashMap() {
-  ChainHashMap h1(0.5, 10, 100);
+  ChainHashMapRehash h1(0.5, 10, 100);
 
   assert(h1.insert("test"));
   assert(h1.insert("abc"));
@@ -25,7 +25,7 @@ void testBaseHashMap() {
 }
 
 void testRehash() {
-  ChainHashMap h1(0.05, 10, 100);
+  ChainHashMapRehash h1(0.05, 10, 100);
   
   assert(h1.insert("test"));
   assert(h1.insert("abc"));
