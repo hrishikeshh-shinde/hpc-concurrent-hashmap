@@ -120,6 +120,8 @@ int main(int argc, char *argv[]) {
   }
   assert(h.size() == 0);
   end = std::chrono::high_resolution_clock::now();
+  time = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(
+      end - start);
   std::cout << "Deletion time: " << time.count() << " ms.\n";
   return 0;
 }

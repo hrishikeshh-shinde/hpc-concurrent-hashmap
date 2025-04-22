@@ -7,16 +7,16 @@ THREAD_SAFE_CHAIN_HASH_MAP_TEST_FILE := tests/ThreadSafeChainHashMapTest.cpp
 all: chainhashmaptest threadsafechainhashmaptest unorderedsettest threadsafeunorderedsettest
 
 chainhashmaptest: $(CHAIN_HASH_MAP_SRC_FILES) $(CHAIN_HASH_MAP_TEST_FILE)
-	g++ -std=c++17 $(CHAIN_HASH_MAP_SRC_FILES) $(CHAIN_HASH_MAP_TEST_FILE) -g -o chainhashmaptest.out
+	g++ $(CHAIN_HASH_MAP_SRC_FILES) $(CHAIN_HASH_MAP_TEST_FILE) -Ofast -o chainhashmaptest.out
 
 threadsafechainhashmaptest: $(THREAD_SAFE_CHAIN_HASH_MAP_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_TEST_FILE)
-	g++ -std=c++17 $(THREAD_SAFE_CHAIN_HASH_MAP_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_TEST_FILE) -g -o threadsafechainhashmaptest.out
+	g++ $(THREAD_SAFE_CHAIN_HASH_MAP_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_TEST_FILE)  -Ofast -o threadsafechainhashmaptest.out
 
 unorderedsettest: tests/UnorderedSetTest.cpp
-	g++ -std=c++17 tests/UnorderedSetTest.cpp -g -o unorderedsettest.out
+	g++ tests/UnorderedSetTest.cpp  -Ofast -o unorderedsettest.out
 
 threadsafeunorderedsettest: tests/ThreadSafeUnorderedSetTest.cpp
-	g++ -std=c++17 tests/ThreadSafeUnorderedSetTest.cpp -g -o threadsafeunorderedsettest.out
+	g++ tests/ThreadSafeUnorderedSetTest.cpp  -Ofast -o threadsafeunorderedsettest.out
 
 clean:
 	rm *.out
