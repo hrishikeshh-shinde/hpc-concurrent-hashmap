@@ -17,9 +17,9 @@
 #include "ThreadPartitionHashMap.h"
 
 // --- Configuration ---
-const int PREPOPULATE_KEYS = 100000; // Number of keys to insert initially
-const int TOTAL_OPERATIONS = 1000000; // Total operations per test run
-const int READ_PERCENT = 80;   // Percentage of search operations
+const int PREPOPULATE_KEYS = 1000000; // Number of keys to insert initially
+const int TOTAL_OPERATIONS = 10000000; // Total operations per test run
+const int READ_PERCENT = 70;   // Percentage of search operations
 const int INSERT_PERCENT = 10; // Percentage of insert operations
 // Remove percentage is implicitly (100 - READ - INSERT)
 
