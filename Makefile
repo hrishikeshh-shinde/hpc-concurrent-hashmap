@@ -15,7 +15,7 @@ ABSTRACT_HEADER = $(SRC_DIR)/AbstractHashMap.h
 INCLUDE = -I$(SRC_DIR) 
 
 # --- Test Executables ---
-TEST_EXECUTABLES = compilation read_heavy resize_stress benchmarks
+TEST_EXECUTABLES = compilation read_heavy resize_stress benchmarks comparison
 
 # --- Default Target ---
 all: $(BUILD_DIR) $(addprefix $(BUILD_DIR)/, $(TEST_EXECUTABLES))
@@ -38,6 +38,9 @@ $(BUILD_DIR)/resize_stress: $(TEST_DIR)/ResizeStressTest.cpp $(SRC_FILES) $(HASH
 
 # Benchmark tests (comparison and scaling)
 $(BUILD_DIR)/benchmarks: $(TEST_DIR)/BenchMarkTest.cpp $(SRC_FILES) $(HASHMAP_HEADER) $(ABSTRACT_HEADER) | $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
+
+$(BUILD_DIR)/comparison: $(TEST_DIR)/ComparisonTest.cpp $(SRC_FILES) $(HASHMAP_HEADER) $(ABSTRACT_HEADER) | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) $(filter %.cpp,$^) -o $@
 
 # --- Clean Target ---
