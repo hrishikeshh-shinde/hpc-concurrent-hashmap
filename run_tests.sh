@@ -10,6 +10,8 @@
 # Log in the submission directory
 cd $SLURM_SUBMIT_DIR 
 
+$PHYSICAL_CORE = 8
+
 module load gcc
 
 # Create build directory
@@ -35,7 +37,7 @@ echo
 
 
 echo "==== Running Read-Heavy Test (build/read_heavy) ===="
-./build/read_heavy 8 1000 100
+./build/read_heavy $PHYSICAL_CORE 1000 100
 echo "======================================================"
 echo
 
