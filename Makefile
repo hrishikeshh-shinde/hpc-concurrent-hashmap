@@ -6,6 +6,7 @@ THREAD_SAFE_CHAIN_HASH_MAP_TEST_FILE := tests/ThreadSafeChainHashMapTest.cpp
 
 CHAIN_HASH_MAP_REHASH_SRC_FILES := src/AbstractHashMap.cpp src/ChainHashMapRehash.cpp
 CHAIN_HASH_MAP_REHASH_TEST_FILE := tests/ChainHashMapRehashTest.cpp
+THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE := tests/ThreadSafeChainHashMapTestRehash.cpp
 
 all: chainhashmaptest threadsafechainhashmaptest unorderedsettest threadsafeunorderedsettest chainhashmaprehashtest
 
@@ -23,6 +24,9 @@ threadsafeunorderedsettest: tests/ThreadSafeUnorderedSetTest.cpp
 
 chainhashmaprehashtest: $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE)
 	g++ -std=c++17 -pthread $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE) -g -o chainhashmaprehashtest.out
+
+threadsafechainhashmaprehashtest: $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE)
+	g++ -std=c++17 $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE) -g -o threadsafechainhashmaprehashtest.out
 
 
 clean:
