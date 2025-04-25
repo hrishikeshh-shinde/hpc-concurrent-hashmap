@@ -13,7 +13,7 @@ set(CMAKE_CXX_EXTENSIONS OFF) # Recommended practice
 set(SRC_DIR src)
 set(TEST_DIR tests)
 # Assuming new test files are also moved to tests/
-# If ResizeStressTest_compare.cpp etc. are in root, remove $(TEST_DIR)/ below
+# If ResizeStressTest.cpp etc. are in root, remove $(TEST_DIR)/ below
 
 # Include directory for headers (src contains .h files)
 # Use target_include_directories for better practice
@@ -47,14 +47,14 @@ target_link_libraries(compilation PRIVATE hashmap_lib) # Link against the map li
 target_compile_features(compilation PRIVATE cxx_std_17)
 
 # 2. Read-Heavy Test (with Comparison)
-add_executable(read_heavy_compare ${TEST_DIR}/ReadHeavyTest_compare.cpp) # Use correct filename
-target_link_libraries(read_heavy_compare PRIVATE hashmap_lib)
-target_compile_features(read_heavy_compare PRIVATE cxx_std_17)
+add_executable(read_heavy ${TEST_DIR}/ReadHeavyTest.cpp) # Use correct filename
+target_link_libraries(read_heavy PRIVATE hashmap_lib)
+target_compile_features(read_heavy PRIVATE cxx_std_17)
 
 # 3. Resize Stress Test (with Comparison)
-add_executable(resize_stress_compare ${TEST_DIR}/ResizeStressTest_compare.cpp) # Use correct filename
-target_link_libraries(resize_stress_compare PRIVATE hashmap_lib)
-target_compile_features(resize_stress_compare PRIVATE cxx_std_17)
+add_executable(resize_stress ${TEST_DIR}/ResizeStressTest.cpp) # Use correct filename
+target_link_libraries(resize_stress PRIVATE hashmap_lib)
+target_compile_features(resize_stress PRIVATE cxx_std_17)
 
 # 4. Write-Heavy Test (with Comparison)
 add_executable(write_heavy ${TEST_DIR}/WriteHeavyTest.cpp) # Use correct filename
@@ -71,8 +71,8 @@ target_compile_features(benchmarks PRIVATE cxx_std_17)
 # Installs executables to 'bin' relative to CMAKE_INSTALL_PREFIX
 install(TARGETS 
     compilation
-    read_heavy_compare
-    resize_stress_compare
+    read_heavy
+    resize_stress
     write_heavy
     benchmarks
     DESTINATION bin)
