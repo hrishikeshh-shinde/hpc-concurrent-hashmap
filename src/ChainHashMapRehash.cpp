@@ -21,16 +21,19 @@ ChainHashMapRehash::ChainHashMapRehash(float loadFactor, int BUCKETS, int MAX_CA
   this->BUCKETS = BUCKETS;
   this->MAX_CAPACITY = MAX_CAPACITY;
   hashMap = std::vector<std::list<std::string>>(getBuckets());
+  mutexArr = std::vector<std::mutex>(BUCKETS);
 }
 
+
 bool ChainHashMapRehash::insert(std::string key) {
-  std::cout << key << " B=" << getBuckets() << " Sz=" << size() << " maxcap=" << getMaxCapacity() << std::endl;
+  //std::cout << key << " B=" << getBuckets() << " Sz=" << size() << " maxcap=" << getMaxCapacity() << std::endl;
   // If current loadFactor greater than desired, call rehash
   if (size() + 1 > static_cast<int>(getLoadFactor() * getMaxCapacity())) {
     rehash();
   }
 
   const int index = getIndex(hash(key));
+  std::lock_guard<std::mutex> lk(mutexArr[index]);
   hashMap[index].push_back(key);
   ++count;
   return true;
@@ -38,9 +41,10 @@ bool ChainHashMapRehash::insert(std::string key) {
 
 bool ChainHashMapRehash::search(std::string key) const {
   const int index = getIndex(hash(key));
-  return std::find(hashMap[index].begin(), hashMap[index].end(), key) !=
-         hashMap[index].end();
+  return std::find(hashMap[index].begin(), hashMap[index].end(), key) != hashMap[index].end();
 }
+
+
 
 bool ChainHashMapRehash::remove(std::string key) {
   const int index = getIndex(hash(key));
@@ -115,6 +119,8 @@ void ChainHashMapRehash::rehash() {
 
     std::vector<std::list<std::string>> newHashMap(getBuckets());
     std::vector<std::mutex> newBucketLocks(getBuckets());
+    // Locks to protect access to each of the buckets.
+    mutexArr = std::vector<std::mutex>(BUCKETS);
 
     // Number of threads (e.g., 4)
     const int num_threads = 4;

@@ -37,6 +37,9 @@ private:
   // mutex for each bucket
   std::vector<std::mutex> bucketLocks;
 
+  // Locks to protect access to each of the buckets.
+  mutable std::vector<std::mutex> mutexArr;
+
   // A utility method to compute the hash of a given string.
   int hash(const std::string &) const;
 

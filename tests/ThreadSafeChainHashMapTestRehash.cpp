@@ -31,7 +31,7 @@ void test_remove(int start, int n, ChainHashMapRehash &h) {
 }
 
 int main(int argc, char *argv[]) {
-  ChainHashMapRehash h(0.75, 1024*1024, 10e7);
+  ChainHashMapRehash h(0.75, 1000, 10e7);
   std::string s;
   bool toInsert;
   std::chrono::high_resolution_clock::time_point start, end;
