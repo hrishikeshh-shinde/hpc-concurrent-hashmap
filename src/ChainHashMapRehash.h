@@ -32,7 +32,7 @@ private:
   int MAX_CAPACITY;
 
   // The hash map data structure behind the scenes.
-  std::vector<std::list<std::string>> hashMap;
+  std::vector<std::vector<std::string>> hashMap;
 
   // mutex for each bucket
   std::vector<std::mutex> bucketLocks;

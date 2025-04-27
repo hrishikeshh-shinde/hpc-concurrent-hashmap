@@ -20,7 +20,7 @@ ChainHashMapRehash::ChainHashMapRehash(float loadFactor, int BUCKETS, int MAX_CA
   this->count = 0;
   this->BUCKETS = BUCKETS;
   this->MAX_CAPACITY = MAX_CAPACITY;
-  hashMap = std::vector<std::list<std::string>>(getBuckets());
+  hashMap = std::vector<std::vector<std::string>>(getBuckets());
   mutexArr = std::vector<std::mutex>(BUCKETS);
   isRehashing = false;
 }
@@ -62,7 +62,7 @@ bool ChainHashMapRehash::remove(std::string key) {
   // std::lock_guard<std::mutex> g(globalMutex); // Lock global lock
   const int index = getIndex(hash(key));
   std::lock_guard<std::mutex> lk(mutexArr[index]);
-  std::list<std::string>::iterator it =
+  std::vector<std::string>::iterator it =
       std::find(hashMap[index].begin(), hashMap[index].end(), key);
   // Do nothing if the key doesn't exist.
   if (it == hashMap[index].end()) {
@@ -138,7 +138,7 @@ void ChainHashMapRehash::rehash() {
     doubleBuckets();
     doubleCapacity();
 
-    std::vector<std::list<std::string>> newHashMap(getBuckets());
+    std::vector<std::vector<std::string>> newHashMap(getBuckets());
     std::vector<std::mutex> newBucketLocks(getBuckets());
     // Locks to protect access to each of the buckets.
     mutexArr = std::vector<std::mutex>(BUCKETS);
