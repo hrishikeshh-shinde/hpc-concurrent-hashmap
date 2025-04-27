@@ -22,14 +22,25 @@ ChainHashMapRehash::ChainHashMapRehash(float loadFactor, int BUCKETS, int MAX_CA
   this->MAX_CAPACITY = MAX_CAPACITY;
   hashMap = std::vector<std::list<std::string>>(getBuckets());
   mutexArr = std::vector<std::mutex>(BUCKETS);
+  isRehashing = false;
 }
 
 
 bool ChainHashMapRehash::insert(std::string key) {
   //std::cout << key << " B=" << getBuckets() << " Sz=" << size() << " maxcap=" << getMaxCapacity() << std::endl;
   // If current loadFactor greater than desired, call rehash
-  if (size() + 1 > static_cast<int>(getLoadFactor() * getMaxCapacity())) {
-    rehash();
+  // std::lock_guard<std::mutex> g(globalMutex); // Lock global lock
+  // Spin-wait if rehahsing is happening
+  while (isRehashing) {
+    std::this_thread::yield();
+  }
+
+  // Now lock to check size and trigger rehash safely
+  if (size() + 1 > getLoadFactor() * getMaxCapacity()) {
+    std::lock_guard<std::mutex> lock(rehashMutex);
+    if (size() + 1 > getLoadFactor() * getMaxCapacity()) { 
+      rehash();
+    }
   }
 
   const int index = getIndex(hash(key));
@@ -40,6 +51,7 @@ bool ChainHashMapRehash::insert(std::string key) {
 }
 
 bool ChainHashMapRehash::search(std::string key) const {
+  // std::lock_guard<std::mutex> g(globalMutex); // Lock global lock
   const int index = getIndex(hash(key));
   return std::find(hashMap[index].begin(), hashMap[index].end(), key) != hashMap[index].end();
 }
@@ -47,13 +59,17 @@ bool ChainHashMapRehash::search(std::string key) const {
 
 
 bool ChainHashMapRehash::remove(std::string key) {
+  // std::lock_guard<std::mutex> g(globalMutex); // Lock global lock
   const int index = getIndex(hash(key));
+  std::lock_guard<std::mutex> lk(mutexArr[index]);
   std::list<std::string>::iterator it =
       std::find(hashMap[index].begin(), hashMap[index].end(), key);
   // Do nothing if the key doesn't exist.
   if (it == hashMap[index].end()) {
     return false;
   }
+  // Else lock the bucket and erase the element at it.
+  
   hashMap[index].erase(it);
   --count;
   return true;
@@ -113,6 +129,11 @@ bool ChainHashMapRehash::remove(std::string key) {
 
 // Thread Version
 void ChainHashMapRehash::rehash() {
+    {
+      std::lock_guard<std::mutex> lock(rehashMutex);
+      isRehashing = true; // Signal others to wait
+    }
+
     int oldBuckets = getBuckets();
     doubleBuckets();
     doubleCapacity();
@@ -153,6 +174,11 @@ void ChainHashMapRehash::rehash() {
     // Move new map into old map
     hashMap = std::move(newHashMap);
     bucketLocks = std::move(newBucketLocks);
+
+    {
+      std::lock_guard<std::mutex> lock(rehashMutex);
+      isRehashing = false; // Done, allow inserts/search again
+    }
 }
 
 int ChainHashMapRehash::size() const { return count; }

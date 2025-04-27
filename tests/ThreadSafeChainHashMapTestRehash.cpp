@@ -5,8 +5,8 @@
 #include <thread>
 
 /**
- * A multi-threaded test application to test single-threaded thread-safe
- * ThreadSafeChainHashMap.
+ * A multi-threaded test application to test multi-threaded thread-safe
+ * ChainHashMapRehash.
  */
 std::vector<std::pair<std::string, bool>> tests;
 
@@ -31,7 +31,7 @@ void test_remove(int start, int n, ChainHashMapRehash &h) {
 }
 
 int main(int argc, char *argv[]) {
-  ChainHashMapRehash h(0.75, 1000, 10e7);
+  ChainHashMapRehash h(0.5, 10e6, 10e8);
   std::string s;
   bool toInsert;
   std::chrono::high_resolution_clock::time_point start, end;

@@ -40,6 +40,12 @@ private:
   // Locks to protect access to each of the buckets.
   mutable std::vector<std::mutex> mutexArr;
 
+  // global rehash lock
+  std::mutex rehashMutex;
+
+  // rehash flag
+  bool isRehashing = false;
+
   // A utility method to compute the hash of a given string.
   int hash(const std::string &) const;
 
