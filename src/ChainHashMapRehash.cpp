@@ -174,60 +174,103 @@ bool ChainHashMapRehash::remove(std::string key) {
 
 
 // Thread Version
-void ChainHashMapRehash::rehash() {
+// void ChainHashMapRehash::rehash() {
 
+//     int oldBuckets = getBuckets();
+//     doubleBuckets();
+//     doubleCapacity();
+
+//     std::vector<std::vector<std::string>> newHashMap(getBuckets());
+//     std::vector<std::mutex> newBucketLocks(getBuckets());
+//     // Locks to protect access to each of the buckets.
+//     mutexArr = std::vector<std::mutex>(BUCKETS);
+
+//     // Number of threads (e.g., 4)
+//     const int num_threads = 4;
+//     std::vector<std::thread> threads(num_threads);
+
+//     // Lambda for thread operation
+//     auto rehashTask = [&](int thread_id) {
+//         // Each thread processes a subset of old buckets
+//         for (int i = thread_id; i < oldBuckets; i += num_threads) {
+//             for (const auto &key : hashMap[i]) {
+//                 int newIndex = getIndex(hash(key));
+
+//                 // Lock only the bucket you're inserting into
+//                 std::lock_guard<std::mutex> lock(newBucketLocks[newIndex]);
+//                 newHashMap[newIndex].push_back(key);
+//             }
+//         }
+//     };
+
+//     // Launch threads
+//     for (int tid = 0; tid < num_threads; ++tid) {
+//         threads[tid] = std::thread(rehashTask, tid);
+//     }
+
+//     // Join threads
+//     for (auto &t : threads) {
+//         t.join();
+//     }
+
+//     // Before moving newHashMap into hashMap:
+//     {
+//       std::lock_guard<std::mutex> lock(rehashMutex);
+//       isRehashing = true; // Signal others to wait
+//     }
+
+//     // Move new map into old map
+//     hashMap = std::move(newHashMap);
+//     bucketLocks = std::move(newBucketLocks);
+
+//     {
+//       std::lock_guard<std::mutex> lock(rehashMutex);
+//       isRehashing = false; // Done, allow inserts/search again
+//     }
+// }
+
+
+void ChainHashMapRehash::rehash() {
     int oldBuckets = getBuckets();
+    auto oldHashMap = hashMap; // Only copy the old hashmap (not mutexes)
+
     doubleBuckets();
     doubleCapacity();
 
-    std::vector<std::vector<std::string>> newHashMap(getBuckets());
-    std::vector<std::mutex> newBucketLocks(getBuckets());
-    // Locks to protect access to each of the buckets.
-    mutexArr = std::vector<std::mutex>(BUCKETS);
+    int newBuckets = getBuckets();
+    std::vector<std::vector<std::string>> newHashMap(newBuckets);
+    std::vector<std::mutex> newBucketLocks(newBuckets);
 
-    // Number of threads (e.g., 4)
+    // Rebuild mutex array fresh
+    mutexArr = std::vector<std::mutex>(newBuckets);
+
+    // Parallel rehashing
     const int num_threads = 4;
     std::vector<std::thread> threads(num_threads);
 
-    // Lambda for thread operation
     auto rehashTask = [&](int thread_id) {
-        // Each thread processes a subset of old buckets
         for (int i = thread_id; i < oldBuckets; i += num_threads) {
-            for (const auto &key : hashMap[i]) {
+            for (const auto &key : oldHashMap[i]) {
                 int newIndex = getIndex(hash(key));
-
-                // Lock only the bucket you're inserting into
                 std::lock_guard<std::mutex> lock(newBucketLocks[newIndex]);
                 newHashMap[newIndex].push_back(key);
             }
         }
     };
 
-    // Launch threads
     for (int tid = 0; tid < num_threads; ++tid) {
         threads[tid] = std::thread(rehashTask, tid);
     }
 
-    // Join threads
     for (auto &t : threads) {
         t.join();
     }
 
-    // Before moving newHashMap into hashMap:
-    {
-      //std::lock_guard<std::mutex> lock(rehashMutex);
-      isRehashing = true; // Signal others to wait
-    }
-
-    // Move new map into old map
+    // Update the hashMap and bucketLocks
     hashMap = std::move(newHashMap);
     bucketLocks = std::move(newBucketLocks);
-
-    {
-      //std::lock_guard<std::mutex> lock(rehashMutex);
-      isRehashing = false; // Done, allow inserts/search again
-    }
 }
+
 
 int ChainHashMapRehash::size() const { return count; }
 
