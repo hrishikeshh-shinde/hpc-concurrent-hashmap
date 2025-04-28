@@ -4,11 +4,13 @@ CHAIN_HASH_MAP_TEST_FILE := tests/ChainHashMapTest.cpp
 THREAD_SAFE_CHAIN_HASH_MAP_SRC_FILES := src/AbstractHashMap.cpp src/ThreadSafeChainHashMap.cpp
 THREAD_SAFE_CHAIN_HASH_MAP_TEST_FILE := tests/ThreadSafeChainHashMapTest.cpp
 
-CHAIN_HASH_MAP_REHASH_SRC_FILES := src/AbstractHashMap.cpp src/ChainHashMapRehash.cpp
-CHAIN_HASH_MAP_REHASH_TEST_FILE := tests/ChainHashMapRehashTest.cpp
-THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE := tests/ThreadSafeChainHashMapTestRehash.cpp
+CHAIN_HASH_MAP_REHASH_OPEN_MP_SRC_FILES := src/AbstractHashMap.cpp src/ChainHashMapRehashOpenMp.cpp
+CHAIN_HASH_MAP_REHASH_OPEN_MP_TEST_FILE := tests/ChainHashMapRehashOpenMpTest.cpp
 
-all: chainhashmaptest threadsafechainhashmaptest unorderedsettest threadsafeunorderedsettest chainhashmaprehashtest
+CHAIN_HASH_MAP_REHASH_THREADS_SRC_FILES := src/AbstractHashMap.cpp src/ChainHashMapRehashThreads.cpp
+CHAIN_HASH_MAP_REHASH_THREADS_TEST_FILE := tests/ChainHashMapRehashThreadsTest.cpp
+
+all: chainhashmaptest threadsafechainhashmaptest unorderedsettest threadsafeunorderedsettest chainhashmaprehashopenmptest chainhashmaprehashthreadstest
 
 chainhashmaptest: $(CHAIN_HASH_MAP_SRC_FILES) $(CHAIN_HASH_MAP_TEST_FILE)
 	g++ -std=c++17 $(CHAIN_HASH_MAP_SRC_FILES) $(CHAIN_HASH_MAP_TEST_FILE) -g -o chainhashmaptest.out
@@ -22,11 +24,11 @@ unorderedsettest: tests/UnorderedSetTest.cpp
 threadsafeunorderedsettest: tests/ThreadSafeUnorderedSetTest.cpp
 	g++ -std=c++17 tests/ThreadSafeUnorderedSetTest.cpp -g -o threadsafeunorderedsettest.out
 
-chainhashmaprehashtest: $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE)
-	g++ -std=c++17 -pthread $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE) -g -o chainhashmaprehashtest.out
+chainhashmaprehashopenmptest: $(CHAIN_HASH_MAP_REHASH_OPEN_MP_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_OPEN_MP_TEST_FILE)
+	/opt/homebrew/Cellar/gcc/14.2.0_1/bin/g++-14 -std=c++17 -pthread $(CHAIN_HASH_MAP_REHASH_OPEN_MP_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_OPEN_MP_TEST_FILE) -fopenmp -O3 -o chainhashmaprehashopenmptest.out
 
-threadsafechainhashmaprehashtest: $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE)
-	g++ -std=c++17 $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE) -O3 -o threadsafechainhashmaprehashtest.out
+chainhashmaprehashthreadstest: $(CHAIN_HASH_MAP_REHASH_THREADS_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_THREADS_TEST_FILE)
+	g++ -std=c++17 -pthread $(CHAIN_HASH_MAP_REHASH_THREADS_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_THREADS_TEST_FILE) -O3 -o chainhashmaprehashthreadstest.out
 
 
 clean:

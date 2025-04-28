@@ -1,4 +1,4 @@
-#include "../src/ChainHashMapRehash.h"
+#include "../src/ChainHashMapRehashThreads.h"
 #include <cassert>
 #include <fstream>
 #include <iostream>
@@ -6,11 +6,11 @@
 
 /**
  * A multi-threaded test application to test multi-threaded thread-safe
- * ChainHashMapRehash.
+ * ChainHashMapRehashThreads.
  */
 std::vector<std::pair<std::string, bool>> tests;
 
-void test_insert(int start, int n, ChainHashMapRehash &h) {
+void test_insert(int start, int n, ChainHashMapRehashThreads &h) {
   for (int i = start; i <= n + start - 1; ++i) {
     if (tests[i].second) {
       assert(h.insert(tests[i].first));
@@ -18,20 +18,20 @@ void test_insert(int start, int n, ChainHashMapRehash &h) {
   }
 }
 
-void test_search(int start, int n, ChainHashMapRehash &h) {
+void test_search(int start, int n, ChainHashMapRehashThreads &h) {
   for (int i = start; i <= n + start - 1; ++i) {
     assert(h.search(tests[i].first) == tests[i].second);
   }
 }
 
-void test_remove(int start, int n, ChainHashMapRehash &h) {
+void test_remove(int start, int n, ChainHashMapRehashThreads &h) {
   for (int i = start; i <= n + start - 1; ++i) {
     assert(h.remove(tests[i].first) == tests[i].second);
   }
 }
 
 int main(int argc, char *argv[]) {
-  ChainHashMapRehash h(0.5, 5000, 500000);
+  ChainHashMapRehashThreads h(0.8, 5000, 500000);
   std::string s;
   bool toInsert;
   std::chrono::high_resolution_clock::time_point start, end;

@@ -5,24 +5,22 @@
 #include <vector>
 #include <mutex>
 
-class ChainHashMapRehash : public AbstractHashMap {
+class ChainHashMapRehashOpenMp : public AbstractHashMap {
 
 public:
-  ChainHashMapRehash(float, int, int); //loadFactor, BUCKETS, MAX_CAPACITY
+  ChainHashMapRehashOpenMp(float, int, int); //loadFactor, BUCKETS, MAX_CAPACITY
   bool insert(std::string);
   bool search(std::string) const;
   bool remove(std::string);
   // Re-hashing
   void rehash();
-  // void rehashOpenMp();
   int size() const;
-    // To get loadFactor to determine if re-hashing needed
-  float getLoadFactor() const;
+  float getLoadFactor() const; // To get loadFactor to determine if re-hashing needed
   int getBuckets() const;
   int getMaxCapacity() const;
   void doubleBuckets();
   void doubleCapacity();
-  ~ChainHashMapRehash();
+  ~ChainHashMapRehashOpenMp();
 
 private:
   // A value between 0 and 1(inclusive) to determine the load at which a
