@@ -27,7 +27,6 @@ ChainHashMapRehashThreads::ChainHashMapRehashThreads(float loadFactor, int BUCKE
 bool ChainHashMapRehashThreads::insert(std::string key) {
   // If current loadFactor greater than desired, call rehash
   // std::lock_guard<std::mutex> g(globalMutex); // Lock global lock
-  // Spin-wait if rehahsing is happening
 
   // Now lock to check size and trigger rehash safely
   if (size() + 1 > getLoadFactor() * getMaxCapacity()) {
