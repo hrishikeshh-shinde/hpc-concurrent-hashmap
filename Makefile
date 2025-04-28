@@ -26,7 +26,7 @@ chainhashmaprehashtest: $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHA
 	g++ -std=c++17 -pthread $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(CHAIN_HASH_MAP_REHASH_TEST_FILE) -g -o chainhashmaprehashtest.out
 
 threadsafechainhashmaprehashtest: $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE)
-	g++ -std=c++17 $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE) -g -o threadsafechainhashmaprehashtest.out
+	g++ -std=c++17 $(CHAIN_HASH_MAP_REHASH_SRC_FILES) $(THREAD_SAFE_CHAIN_HASH_MAP_REHASH_TEST_FILE) -O3 -o threadsafechainhashmaprehashtest.out
 
 
 clean:
