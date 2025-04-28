@@ -57,7 +57,6 @@ bool ChainHashMapRehash::search(std::string key) const {
 }
 
 
-
 bool ChainHashMapRehash::remove(std::string key) {
   // std::lock_guard<std::mutex> g(globalMutex); // Lock global lock
   const int index = getIndex(hash(key));
@@ -127,106 +126,108 @@ bool ChainHashMapRehash::remove(std::string key) {
 //   hashMap = std::move(newHashMap);
 // }
 
-void ChainHashMapRehash::rehash() {
+// void ChainHashMapRehash::rehash() {
 
-  {
-    std::lock_guard<std::mutex> lock(rehashMutex);
-    isRehashing = true;
-  }
+//   {
+//     std::lock_guard<std::mutex> lock(rehashMutex);
+//     isRehashing = true;
+//   }
 
-  int oldBuckets = getBuckets();
-  doubleBuckets();
-  doubleCapacity();
+//   int oldBuckets = getBuckets();
+//   doubleBuckets();
+//   doubleCapacity();
 
-  int Buckets = getBuckets();
-  std::vector<std::vector<std::string>> newHashMap(Buckets);
+//   int Buckets = getBuckets();
+//   std::vector<std::vector<std::string>> newHashMap(Buckets);
 
-  int num_threads = omp_get_max_threads();
-  std::vector<std::vector<std::vector<std::string>>> localHashMaps(num_threads, std::vector<std::vector<std::string>>(Buckets));
+//   int num_threads = omp_get_max_threads();
+//   std::vector<std::vector<std::vector<std::string>>> localHashMaps(num_threads, std::vector<std::vector<std::string>>(Buckets));
 
-  #pragma omp parallel
-  {
-    int tid = omp_get_thread_num();
-    #pragma omp for schedule(dynamic)
-    for (size_t i = 0; i < hashMap.size(); ++i) {
-      for (const auto &key : hashMap[i]) {
-        int newIndex = getIndex(hash(key));
-        localHashMaps[tid][newIndex].push_back(key);
-      }
-    }
-  }
+//   #pragma omp parallel
+//   {
+//     int tid = omp_get_thread_num();
+//     #pragma omp for schedule(dynamic)
+//     for (size_t i = 0; i < hashMap.size(); ++i) {
+//       for (const auto &key : hashMap[i]) {
+//         int newIndex = getIndex(hash(key));
+//         localHashMaps[tid][newIndex].push_back(key);
+//       }
+//     }
+//   }
 
-  // Merge local hashmaps
-  for (int tid = 0; tid < num_threads; ++tid) {
-    for (size_t bucketIdx = 0; bucketIdx < Buckets; ++bucketIdx) {
-      for (const auto& key : localHashMaps[tid][bucketIdx]) {
-        newHashMap[bucketIdx].push_back(key);
-      }
-    }
-  }
+//   // Merge local hashmaps
+//   for (int tid = 0; tid < num_threads; ++tid) {
+//     for (size_t bucketIdx = 0; bucketIdx < Buckets; ++bucketIdx) {
+//       for (const auto& key : localHashMaps[tid][bucketIdx]) {
+//         newHashMap[bucketIdx].push_back(key);
+//       }
+//     }
+//   }
 
-  hashMap = std::move(newHashMap);
+//   hashMap = std::move(newHashMap);
 
-  {
-    std::lock_guard<std::mutex> lock(rehashMutex);
-    isRehashing = false;
-  }
-}
+//   {
+//     std::lock_guard<std::mutex> lock(rehashMutex);
+//     isRehashing = false;
+//   }
+// }
 
 
 // Thread Version
-// void ChainHashMapRehash::rehash() {
-//     {
-//       std::lock_guard<std::mutex> lock(rehashMutex);
-//       isRehashing = true; // Signal others to wait
-//     }
+void ChainHashMapRehash::rehash() {
 
-//     int oldBuckets = getBuckets();
-//     doubleBuckets();
-//     doubleCapacity();
+    int oldBuckets = getBuckets();
+    doubleBuckets();
+    doubleCapacity();
 
-//     std::vector<std::vector<std::string>> newHashMap(getBuckets());
-//     std::vector<std::mutex> newBucketLocks(getBuckets());
-//     // Locks to protect access to each of the buckets.
-//     mutexArr = std::vector<std::mutex>(BUCKETS);
+    std::vector<std::vector<std::string>> newHashMap(getBuckets());
+    std::vector<std::mutex> newBucketLocks(getBuckets());
+    // Locks to protect access to each of the buckets.
+    mutexArr = std::vector<std::mutex>(BUCKETS);
 
-//     // Number of threads (e.g., 4)
-//     const int num_threads = 4;
-//     std::vector<std::thread> threads(num_threads);
+    // Number of threads (e.g., 4)
+    const int num_threads = 4;
+    std::vector<std::thread> threads(num_threads);
 
-//     // Lambda for thread operation
-//     auto rehashTask = [&](int thread_id) {
-//         // Each thread processes a subset of old buckets
-//         for (int i = thread_id; i < oldBuckets; i += num_threads) {
-//             for (const auto &key : hashMap[i]) {
-//                 int newIndex = getIndex(hash(key));
+    // Lambda for thread operation
+    auto rehashTask = [&](int thread_id) {
+        // Each thread processes a subset of old buckets
+        for (int i = thread_id; i < oldBuckets; i += num_threads) {
+            for (const auto &key : hashMap[i]) {
+                int newIndex = getIndex(hash(key));
 
-//                 // Lock only the bucket you're inserting into
-//                 std::lock_guard<std::mutex> lock(newBucketLocks[newIndex]);
-//                 newHashMap[newIndex].push_back(key);
-//             }
-//         }
-//     };
+                // Lock only the bucket you're inserting into
+                std::lock_guard<std::mutex> lock(newBucketLocks[newIndex]);
+                newHashMap[newIndex].push_back(key);
+            }
+        }
+    };
 
-//     // Launch threads
-//     for (int tid = 0; tid < num_threads; ++tid) {
-//         threads[tid] = std::thread(rehashTask, tid);
-//     }
+    // Launch threads
+    for (int tid = 0; tid < num_threads; ++tid) {
+        threads[tid] = std::thread(rehashTask, tid);
+    }
 
-//     // Join threads
-//     for (auto &t : threads) {
-//         t.join();
-//     }
+    // Join threads
+    for (auto &t : threads) {
+        t.join();
+    }
 
-//     // Move new map into old map
-//     hashMap = std::move(newHashMap);
-//     bucketLocks = std::move(newBucketLocks);
+    // Before moving newHashMap into hashMap:
+    {
+      //std::lock_guard<std::mutex> lock(rehashMutex);
+      isRehashing = true; // Signal others to wait
+    }
 
-//     {
-//       std::lock_guard<std::mutex> lock(rehashMutex);
-//       isRehashing = false; // Done, allow inserts/search again
-//     }
-// }
+    // Move new map into old map
+    hashMap = std::move(newHashMap);
+    bucketLocks = std::move(newBucketLocks);
+
+    {
+      //std::lock_guard<std::mutex> lock(rehashMutex);
+      isRehashing = false; // Done, allow inserts/search again
+    }
+}
 
 int ChainHashMapRehash::size() const { return count; }
 
