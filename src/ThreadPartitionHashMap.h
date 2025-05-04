@@ -1,18 +1,16 @@
-
 #ifndef THREAD_PARTITION_HASH_MAP_H
 #define THREAD_PARTITION_HASH_MAP_H
 
-#include "AbstractHashMap.h" // Assumes AbstractHashMap.h defines the base class correctly
+#include "AbstractHashMap.h"
 #include <vector>
 #include <array>
 #include <atomic>
 #include <string>
 #include <functional>   // For std::hash
-#include <shared_mutex> // For std::shared_mutex
-#include <mutex>        // Added for std::unique_lock, std::lock
+#include <stdexcept>    // For exceptions
+#include <limits>       // For numeric_limits
 
-// Define states for entries (Tombstones)
-// DEFINED ONLY HERE, NOT IN .CPP
+// Define states for entries
 enum class EntryState : uint8_t {
     EMPTY,
     OCCUPIED,
@@ -22,28 +20,21 @@ enum class EntryState : uint8_t {
 
 class ThreadPartitionHashMap : public AbstractHashMap {
 private:
-    // Number of submaps - typically a power of 2
+    // --- Configuration ---
     static constexpr size_t NUM_SUBMAPS = 32;
+    const size_t num_worker_threads_; // Number of threads the application WILL use
 
-    // Entry in the hashmap
+    // --- Data Structures ---
     struct Entry {
         std::atomic<EntryState> state;
         std::string key;
 
-        // Default constructor
         Entry() : state(EntryState::EMPTY) {}
-
-        // Delete copy operations for safety with atomics/mutexes
         Entry(const Entry& other) = delete;
         Entry& operator=(const Entry& other) = delete;
-
-        // Move constructor
         Entry(Entry&& other) noexcept : state(other.state.load(std::memory_order_relaxed)), key(std::move(other.key)) {}
-
-        // Move assignment
         Entry& operator=(Entry&& other) noexcept {
             if (this != &other) {
-                // Assigning atomics requires store/load
                 state.store(other.state.load(std::memory_order_relaxed));
                 key = std::move(other.key);
             }
@@ -51,99 +42,77 @@ private:
         }
     };
 
-    // Submap (partition of the full map)
     class Submap {
     public:
-        ThreadPartitionHashMap* parent; // Pointer back to parent for load factor
+        ThreadPartitionHashMap* parent;
         std::vector<Entry> entries;
-        std::atomic<size_t> size;
-        mutable std::shared_mutex rw_mutex; // Mutex per submap for read/write locking
+        size_t size; // Non-atomic
 
-        // Default constructor - essential for std::array
-         Submap() : parent(nullptr), size(0) {
-             // Provide a default initial capacity
-             entries.resize(8);
-         }
-
-        // Constructor with parent and initial capacity
+        Submap() : parent(nullptr), size(0) { entries.resize(8); }
         Submap(ThreadPartitionHashMap* p, size_t initial_capacity = 8)
-            : parent(p), size(0) {
-             // Ensure capacity is reasonable
-             entries.resize(initial_capacity > 0 ? initial_capacity : 8);
-        }
-
-        // Delete copy operations
+            : parent(p), size(0) { entries.resize(initial_capacity > 0 ? initial_capacity : 8); }
         Submap(const Submap& other) = delete;
         Submap& operator=(const Submap& other) = delete;
-
-        // Move constructor
         Submap(Submap&& other) noexcept
-        : parent(other.parent),
-          entries(std::move(other.entries)),
-          size(other.size.load(std::memory_order_relaxed))
-          // rw_mutex is default-constructed for the new object.
-          {
-            other.parent = nullptr;
-        }
-
-        // Move assignment operator
+        : parent(other.parent), entries(std::move(other.entries)), size(other.size)
+          { other.parent = nullptr; other.size = 0; }
         Submap& operator=(Submap&& other) noexcept {
             if (this != &other) {
-                // Lock both mutexes before modifying state to prevent deadlock
-                std::unique_lock lhs_lock(rw_mutex, std::defer_lock);
-                std::unique_lock rhs_lock(other.rw_mutex, std::defer_lock);
-                std::lock(lhs_lock, rhs_lock); // Lock both
-
-                parent = other.parent;
-                entries = std::move(other.entries);
-                size.store(other.size.load(std::memory_order_relaxed));
-                // rw_mutex remains the mutex of *this* object.
-                other.parent = nullptr;
+                parent = other.parent; entries = std::move(other.entries); size = other.size;
+                other.parent = nullptr; other.size = 0;
             }
             return *this;
         }
-
-        // Get capacity - needs lock if called when resize might happen concurrently
-         size_t capacity_unsafe() const {
-             // Assumes caller holds appropriate lock (shared or unique)
-             return entries.size();
-         }
+        size_t capacity() const { return entries.size(); }
     };
 
     // --- Member Variables ---
     std::array<Submap, NUM_SUBMAPS> submaps;
-    std::atomic<size_t> total_size; // Using size_t for consistency
-
-    // Hash function
+    std::atomic<size_t> total_size; // Atomic total count across submaps
     std::hash<std::string> hasher;
 
-    // --- Private Helper Method Declarations ---
-    size_t get_submap_index(const std::string& key) const;
-    // get_entry_index is no longer needed - calculation done inline
-    // get_thread_submaps is no longer needed - removed partitioning logic
+    // --- Private Helper Methods ---
 
-    // Resize a specific submap (declaration only)
+    // Performs resizing for a specific submap. Assumes called only by owner thread.
     void resize_submap(size_t submap_idx);
 
 public:
-    // Constructor
-    explicit ThreadPartitionHashMap(float loadFactor = 0.7f); // Mark explicit
+    // Constructor - REQUIRES the number of worker threads the application will use
+    explicit ThreadPartitionHashMap(size_t num_worker_threads, float loadFactor = 0.7f);
 
-    // --- Overridden Virtual Functions ---
-    // Signatures MUST exactly match AbstractHashMap
+    // --- Public Interface (Compatible with AbstractHashMap) ---
+    // IMPORTANT: The caller (application) MUST ensure that these methods are only
+    // called by the thread that owns the submap corresponding to the key.
+    // Use get_submap_index() and get_owner_thread_index() to check ownership
+    // before calling these methods in a multi-threaded context.
 
-    bool insert(std::string key) override; // Takes string by value
+    bool insert(std::string key) override;
+    bool search(std::string key) const override;
+    bool remove(std::string key) override;
 
-    bool search(std::string key) const override; // Takes string by value
+    // Returns the total size across all submaps
+    int size() const override;
 
-    bool remove(std::string key) override; // Takes string by value
-
-    int size() const override; // Returns int as per base class
-
+    // Global rehash is not supported in this model.
+    // Resizing happens locally within insert().
     void rehash() override;
 
     // Destructor
     ~ThreadPartitionHashMap() override;
-};
 
-#endif // THREAD_PARTITION_HASH_MAP_H
+    // --- Public Helper Methods for Application Ownership Check ---
+
+    // Determines which submap a key belongs to
+    size_t get_submap_index(const std::string& key) const;
+
+    // Determines which worker thread index (0 to num_worker_threads - 1) owns a given submap
+    // The application should compare this to its own worker index.
+    size_t get_owner_thread_index(size_t submap_idx) const;
+
+    // Allows application to know the configured number of threads
+    size_t get_num_worker_threads() const { return num_worker_threads_; }
+
+    // Allows application to know the number of submaps
+    size_t get_num_submaps() const { return NUM_SUBMAPS; }
+
+};
