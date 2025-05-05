@@ -116,3 +116,5 @@ public:
     size_t get_num_submaps() const { return NUM_SUBMAPS; }
 
 };
+
+#endif

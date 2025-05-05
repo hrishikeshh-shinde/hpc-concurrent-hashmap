@@ -11,23 +11,33 @@
 
 # Log in the submission directory
 echo "Changing to submission directory: $SLURM_SUBMIT_DIR"
+cd "$SLURM_SUBMIT_DIR" || exit 1 # Exit if cd fails
 
-# Load necessary modules (adjust if needed)
+# Load necessary modules (adjust if needed for GLIBC compatibility)
 echo "Loading GCC module..."
-module load gcc
+# --- ADJUST THIS LINE AS NEEDED ---
+# Example: Try GCC 11.x (check 'module avail gcc' on your cluster)
+module load gcc/11.3.0
+# Or comment out the line above to use the system default compiler
+# --- END ADJUSTMENT ---
 
-# Create build directory
-echo "Creating build directory..."
-mkdir -p build
-echo
+# Check if g++ is available
+if ! command -v g++ &> /dev/null; then
+    echo "ERROR: g++ command not found after loading module. Check module name/availability."
+    exit 1
+fi
+echo "Using g++: $(command -v g++)"
+echo "g++ version: $(g++ --version | head -n1)"
 
-# Compile the specific target (or all if preferred)
-echo "Compiling targets..."
-cd build || exit 1 # Enter build directory
-cmake .. # Configure
-make all # Build everything defined in CMakeLists.txt
-cd .. # Go back to project root
 
+# Compile using Makefile
+echo "Compiling targets using Makefile..."
+# Clean previous build (optional but recommended)
+make clean
+# Build the targets defined in the Makefile ('all' target)
+make all
+
+# Check if make was successful
 if [ $? -ne 0 ]; then
     echo "MAKE FAILED! Exiting."
     exit 1
@@ -64,9 +74,5 @@ else
     # Decide whether to exit or continue
     # exit 1
 fi
-
-
-# --- Commented out other test runs ---
-# ...
 
 echo "All specified tests completed at $(date)!"
